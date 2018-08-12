@@ -16,13 +16,13 @@ def pixel_train(phase, cache, kwargs):
     pix_idx = cache["pix_idx"]
     wheel_color = cache["wheel_color"]
 
-    step = 3
+    step = 2.5
     dim_factor = 0.92
 
     # Update if moved to next pix
     curr_pix = int(n_pix * phase)
     if curr_pix != pix_idx:
-        wheel_color = (wheel_color + step) % 255
+        wheel_color = int((wheel_color + step) % 255)
         rgb = wheel(wheel_color, True)
         rgb_values = rgb_values * dim_factor
         rgb_values[curr_pix] = rgb
@@ -34,14 +34,15 @@ def pixel_train(phase, cache, kwargs):
     return rgb_values, cache
 
 
-def test_fn(self, phase, cache, kwargs):
+def test_fn(phase, cache, kwargs):
+    rgb = kwargs["rgb"]
+    shape = kwargs["shape"]
     phase_rad = 2 * np.pi * phase
-    
-    r, g, b = self.rgb
+    r, g, b = rgb
     r *= (np.sin(phase_rad) + 1 ) / 2 / 10
     g *= (np.sin(phase_rad) + 1 ) / 2 / 10
     b *= (np.sin(phase_rad) + 1 ) / 2 / 10
-    values = np.zeros(self.shape)
+    values = np.zeros(shape)
     values[:, 0] = r
     values[:, 1] = g
     values[:, 2] = b
