@@ -7,24 +7,35 @@ import time
 import numpy as np
 from display import Display
 import curses
+from phase import modify_phase, calculate_phase
 
-# HOW TO IMPLEMENT DELAY / DIMMER
+# DEFAULT WARM SHIFT
+# DO ALL DISPLAY UPDATES AT END OF LOOP
 # HOW TO IMPLEMENT TRANSITION EFFECTS
-# HOW TO IMPLEMENT WAIT
 # ORBITS IN OPPOSITE DIRECTIONS
-# ADD GRAPH - DISP CONSTANTLY UPDATES
+# FLASHING NON PERSISTANT EFFECT
+
 
 SPACEBAR = 32
 S_KEY = 115
 A_KEY = 97
 C_KEY = 99
+D_KEY = 100
+RIGHT = 261
+LEFT = 260
+UP = 259
+DOWN = 258
+MINUS_KEY = 45
+PLUS_KEY = 61
+
+FN_NAMES = {pulse: "Pulse",
+            pixel_train: "Pixel Train",
+            droplets: "Droplets"}
 
 class Controller:
     def __init__(self):
-        # self.max_tempo = 200
-        # self.min_tempo = 0.25
         self.rgb = WARM_CANDLE
-        # self.color = Adafruit_WS2801.RGB_to_color(*self.rgb)
+        self.saturation = 0.5
         self.freq = 1
         self.tempo = 60
         self.show_disp = True
@@ -32,20 +43,24 @@ class Controller:
         self.curr_cycle = 0
         self.tap_start = None
         self.tap_end = None
+        self.speed_factor = 1
         self.pixels = get_pixels()
         self.n_pix = self.pixels.count()
-        self.function = test_fn
-        self.brightness = 1
+        self.function = pulse
+        self.brightness = 0.5
         self.shape = (self.n_pix, 3)
         if self.show_disp:
-            self.display = Display()
-            self.display.update("tempo", self.tempo)
+            self.display = Display(self.tempo,
+                                   FN_NAMES[self.function],
+                                   self.brightness,
+                                   self.speed_factor,
+                                   self.saturation)
 
     def start(self):
         self.start_time = time.time()
         counter = 0
         rgb_values = np.zeros((self.n_pix, 3))
-        cache = None
+        cache = {}
         try:
             # Main loop
             while True:
@@ -59,8 +74,18 @@ class Controller:
                 elapsed = (act_start - self.start_time) * 1000 
                 phase, n_cycles = calculate_phase(elapsed, self.cycle_time)
 
+                # Speeding up or slowing down phase
+                curr_speed = self.speed_factor
+                if self.function == pixel_train:
+                    curr_speed /= 4.
+                phase, direction = modify_phase(phase, n_cycles, curr_speed)
+                if self.show_disp:
+                    self.display.draw_phase(phase, direction, self.speed_factor)
+
                 kwargs = {"shape": self.shape,
-                          "rgb": self.rgb}
+                          "rgb": self.rgb,
+                          "n_cycles": n_cycles,
+                          "saturation": self.saturation}
 
                 # Generate new colors (persisting)
                 rgb_values, cache = self.function(phase,
@@ -78,9 +103,9 @@ class Controller:
                 act_end = time.time()
                 act_dur = act_end - act_start
                 act_freq = 1000 / (act_dur * 1000)
-                self.display.update("freq", act_freq)
+                if self.show_disp:
+                    self.display.update("freq", act_freq)
                 
-
         finally:
             turn_off(self.pixels)
             if self.show_disp:
@@ -88,6 +113,7 @@ class Controller:
 
     def process_press(self):
         ch = self.display.getch()
+
         if ch == SPACEBAR: # i.e. key pressed
             self.tap_start = self.tap_end
             self.tap_end = time.time()
@@ -95,12 +121,48 @@ class Controller:
             if tempo_update:
                 self.start_time = time.time()
                 self.display.update("tempo", self.tempo)
+
+        # Toggle different lighting modes
+        elif ch == A_KEY:
+            self.function = pulse
+            self.display.update("mode", "Pulse")
         elif ch == S_KEY:
             self.function = pixel_train
-        elif ch == A_KEY:
-            self.function = test_fn
+            self.display.update("mode", "Pixel Train")
+        elif ch == D_KEY:
+            self.function = droplets
+            self.display.update("mode", "Droplets")
+
+        # Master control keys
         elif ch == C_KEY:
             self.start_time = time.time()
+        elif ch == LEFT:
+            self.brightness -= 0.02
+            self.brightness = min(self.brightness, 1)
+            self.brightness = max(self.brightness, 0)
+            self.display.update("brightness", self.brightness)
+        elif ch == RIGHT:
+            self.brightness += 0.02
+            self.brightness = min(self.brightness, 1)
+            self.brightness = max(self.brightness, 0)
+            self.display.update("brightness", self.brightness)
+        elif ch == UP:
+            self.speed_factor = self.speed_factor * 2
+            self.display.update("speed", self.speed_factor)
+        elif ch == DOWN:
+            self.speed_factor = self.speed_factor / 2.
+            self.display.update("speed", self.speed_factor)
+        elif ch == PLUS_KEY:
+            self.saturation += 0.02
+            self.saturation = min(self.saturation, 1)
+            self.saturation = max(self.saturation, 0)
+            self.display.update("saturation", self.saturation)
+        elif ch == MINUS_KEY:
+            self.saturation -= 0.02
+            self.saturation = min(self.saturation, 1)
+            self.saturation = max(self.saturation, 0)
+            self.display.update("saturation", self.saturation)
+
         elif ch != -1:
             self.display.update("debug", ch)
 
