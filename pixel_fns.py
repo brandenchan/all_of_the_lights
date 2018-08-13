@@ -16,16 +16,17 @@ def get_pixels():
     pixels = Adafruit_WS2801.WS2801Pixels(PIXEL_COUNT, clk=PIXEL_CLOCK, do=PIXEL_DOUT)
     return pixels
 
-def wheel(pos, ret_rgb=False):
+def wheel(pos, ret_rgb=False, desaturate=0):
     if pos < 85:
-        rgb = (pos * 3, 255 - pos * 3, 0)
+        rgb = [pos * 3, 255 - pos * 3, 0]
     elif pos < 170:
         pos -= 85
-        rgb = (255 - pos * 3, 0, pos * 3)
+        rgb = [255 - pos * 3, 0, pos * 3]
     else:
         pos -= 170
-        rgb = (0, pos * 3, 255 - pos * 3)
+        rgb = [0, pos * 3, 255 - pos * 3]
     if ret_rgb:
+        rgb = np.maximum(rgb, desaturate)
         return rgb
     return Adafruit_WS2801.RGB_to_color(*rgb)
 
@@ -71,17 +72,15 @@ def set_all_values(pixels, array):
     for i, (r, g, b) in enumerate(array):
         pixels.set_pixel(i, Adafruit_WS2801.RGB_to_color(int(r), int(g), int(b)))
         
-
-
 def interp_one(c_1, c_2, phase_pos, phase):
     if phase:
         phase_pos = 1 - phase_pos
     return int((c_1 - c_2) * phase_pos + c_1)
 
-def calculate_phase(elapsed, cycle_time):
-    phase = elapsed % cycle_time / cycle_time
-    n_cycles = elapsed // cycle_time
-    return phase, n_cycles
+def random_rgb():
+    return (random.randint(0, 255),
+            random.randint(0, 255),
+            random.randint(0, 255))
 
 if __name__ == "__main__":
     pixels = get_pixels()
