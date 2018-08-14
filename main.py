@@ -1,7 +1,7 @@
 from pixel_fns import *
 from pattern_fns import *
 from colors import *
-# from pixel_train import pixel_train
+from constants import *
 import random
 import time
 import numpy as np
@@ -10,32 +10,16 @@ import curses
 from phase import modify_phase, calculate_phase
 
 # DEFAULT WARM SHIFT
-# DO ALL DISPLAY UPDATES AT END OF LOOP
 # HOW TO IMPLEMENT TRANSITION EFFECTS
 # ORBITS IN OPPOSITE DIRECTIONS
 # FLASHING NON PERSISTANT EFFECT
+# Droplet from centre then droplet from edges
 
-
-SPACEBAR = 32
-S_KEY = 115
-A_KEY = 97
-C_KEY = 99
-D_KEY = 100
-RIGHT = 261
-LEFT = 260
-UP = 259
-DOWN = 258
-MINUS_KEY = 45
-PLUS_KEY = 61
-
-FN_NAMES = {pulse: "Pulse",
-            pixel_train: "Pixel Train",
-            droplets: "Droplets"}
 
 class Controller:
     def __init__(self):
         self.rgb = WARM_CANDLE
-        self.saturation = 0.5
+        self.saturation = 0.
         self.freq = 1
         self.tempo = 60
         self.show_disp = True
@@ -50,11 +34,7 @@ class Controller:
         self.brightness = 0.5
         self.shape = (self.n_pix, 3)
         if self.show_disp:
-            self.display = Display(self.tempo,
-                                   FN_NAMES[self.function],
-                                   self.brightness,
-                                   self.speed_factor,
-                                   self.saturation)
+            self.display = Display()
 
     def start(self):
         self.start_time = time.time()
@@ -79,8 +59,6 @@ class Controller:
                 if self.function == pixel_train:
                     curr_speed /= 4.
                 phase, direction = modify_phase(phase, n_cycles, curr_speed)
-                if self.show_disp:
-                    self.display.draw_phase(phase, direction, self.speed_factor)
 
                 kwargs = {"shape": self.shape,
                           "rgb": self.rgb,
@@ -103,8 +81,16 @@ class Controller:
                 act_end = time.time()
                 act_dur = act_end - act_start
                 act_freq = 1000 / (act_dur * 1000)
+
+                # Update Display
                 if self.show_disp:
-                    self.display.update("freq", act_freq)
+                    self.display.update(self.tempo,
+                                        FN_NAMES[self.function],
+                                        self.brightness,
+                                        self.speed_factor,
+                                        self.saturation,
+                                        phase,
+                                        direction)
                 
         finally:
             turn_off(self.pixels)
@@ -120,18 +106,14 @@ class Controller:
             tempo_update = self.calculate_times()
             if tempo_update:
                 self.start_time = time.time()
-                self.display.update("tempo", self.tempo)
 
         # Toggle different lighting modes
         elif ch == A_KEY:
             self.function = pulse
-            self.display.update("mode", "Pulse")
         elif ch == S_KEY:
             self.function = pixel_train
-            self.display.update("mode", "Pixel Train")
         elif ch == D_KEY:
             self.function = droplets
-            self.display.update("mode", "Droplets")
 
         # Master control keys
         elif ch == C_KEY:
@@ -140,31 +122,25 @@ class Controller:
             self.brightness -= 0.02
             self.brightness = min(self.brightness, 1)
             self.brightness = max(self.brightness, 0)
-            self.display.update("brightness", self.brightness)
         elif ch == RIGHT:
             self.brightness += 0.02
             self.brightness = min(self.brightness, 1)
             self.brightness = max(self.brightness, 0)
-            self.display.update("brightness", self.brightness)
         elif ch == UP:
             self.speed_factor = self.speed_factor * 2
-            self.display.update("speed", self.speed_factor)
         elif ch == DOWN:
             self.speed_factor = self.speed_factor / 2.
-            self.display.update("speed", self.speed_factor)
         elif ch == PLUS_KEY:
             self.saturation += 0.02
             self.saturation = min(self.saturation, 1)
             self.saturation = max(self.saturation, 0)
-            self.display.update("saturation", self.saturation)
         elif ch == MINUS_KEY:
             self.saturation -= 0.02
             self.saturation = min(self.saturation, 1)
             self.saturation = max(self.saturation, 0)
-            self.display.update("saturation", self.saturation)
 
         elif ch != -1:
-            self.display.update("debug", ch)
+            self.display.set_field("debug", ch)
 
     def calculate_times(self):
         if not self.tap_start:

@@ -15,7 +15,7 @@ FREQ_LINE = 13
 # MAYBE DONT UPDATE SO MUCH
 
 class Display:
-    def __init__(self, tempo, mode, brightness, speed, saturation):
+    def __init__(self):
         self.s = curses.initscr()
         curses.noecho()
         curses.cbreak()
@@ -40,18 +40,22 @@ class Display:
         self.s.addstr(SATURATION_LINE,
                       INDENT,
                       "Saturation: ")
-        self.update("tempo", tempo)
-        self.update("mode", mode)
-        self.update("brightness", brightness)
-        self.update("speed", speed)
-        self.update("saturation", saturation)
         self.s.refresh()
 
     def getch(self):
         return self.s.getch()
 
+    def update(self, tempo, mode, brightness, speed, saturation, phase, direction):
+        self.set_field("tempo", tempo)
+        self.set_field("mode", mode)
+        self.set_field("brightness", brightness)
+        self.set_field("speed", speed)
+        self.set_field("saturation", saturation)
+        self.draw_phase(phase, direction, speed)
+        self.s.move(0,0)
+        self.s.refresh()
 
-    def update(self, cat, val, indent=3, word_len=0):
+    def set_field(self, cat, val, indent=3, word_len=0):
 
         if cat == "tempo":
             line = TEMPO_LINE
@@ -94,8 +98,6 @@ class Display:
         self.s.move(line, indent + word_len)
         self.s.clrtoeol()
         self.s.addstr(line, indent + word_len, string)
-        self.s.move(0,0)
-        self.s.refresh()
 
     def draw_phase(self, phase, direction, multiplier, size=20):            
         step = 1. / size
