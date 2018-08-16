@@ -1,5 +1,5 @@
 import numpy as np
-from pixel_fns import wheel
+from pixel_fns import wheel, shift
 import random
 from phase import modify_phase
 
@@ -8,13 +8,13 @@ def pixel_train(phase, cache, kwargs):
 
     step = 2.5
     dim_factor = 0.92
-    desaturate = 0
 
     shape = kwargs["shape"]
     n_pix = shape[0]
     n_cycles = kwargs["n_cycles"]
     saturation = kwargs["saturation"]
-    desaturate = 255 - (saturation * 255.)
+    warm_shift = kwargs["warm_shift"]
+    warm_rgb = kwargs["warm_rgb"]
 
     # Initialize new cache
     if cache.get("mode") != "pixel_train":
@@ -36,10 +36,12 @@ def pixel_train(phase, cache, kwargs):
     curr_pix = int(n_pix * phase)
     if curr_pix != pix_idx:
         wheel_color = int((wheel_color + step) % 255)
-        rgb = wheel(wheel_color, True)
+        rgb = wheel(wheel_color, True, saturation)
         rgb_values = rgb_values * dim_factor
+        if warm_shift:
+            rgb = shift(rgb, warm_rgb, 1. - saturation)
         rgb_values[curr_pix] = rgb
-        rgb_values[curr_pix] = np.maximum(rgb_values[curr_pix], desaturate)
+
 
     # Save new values in cache
     cache["rgb_values"] = rgb_values
@@ -58,7 +60,7 @@ def pulse(phase, cache, kwargs):
 
     start = "high"
 
-    rgb = kwargs["rgb"]
+    rgb = kwargs["warm_rgb"]
     shape = kwargs["shape"]
     phase_rad = 2 * np.pi * phase
     if start == "low":
@@ -82,41 +84,42 @@ def droplets(phase, cache, kwargs):
 
     shifted = True
     radius = 24
-    palette = "rainbow"
 
     # Get var from kwargs
-    curr_cycle = kwargs.get("n_cycles")
-    shape = kwargs.get("shape")
+    curr_cycle = kwargs["n_cycles"]
+    shape = kwargs["shape"]
     n_pix = shape[0]
-    saturation = kwargs.get("saturation")
-    desaturation = 255 - (saturation * 255.)
+    saturation = kwargs["saturation"]
+    warm_shift = kwargs["warm_shift"]
+    warm_rgb = kwargs["warm_rgb"]
 
     # Initialize new cache
     if cache.get("mode") != "droplets":
         cache = {"mode": "droplets",
                  "last_cycle": 0,
-                 "center_pix": random.randint(radius, n_pix - radius - 1)}
-        if palette == "rainbow":
-            cache["rgb"] = wheel(random.randint(0, 255), True, desaturation)
-            
-        elif palette == "random":
-            cache["rgb"] = random_rgb()
-    center_pix = cache.get("center_pix")
-    last_cycle = cache.get("last_cycle")
-    rgb = cache.get("rgb")
+                 "center_pix": random.randint(radius, n_pix - radius - 1),
+                 "rgb": wheel(random.randint(0, 255), True, saturation)}
+    center_pix = cache["center_pix"]
+    last_cycle = cache["last_cycle"]
+    rgb = cache["rgb"]
 
     rgb_values = np.zeros(shape)
     if curr_cycle != last_cycle:
-        rgb = wheel(random.randint(0, 255), True, desaturation)
+        rgb = wheel(random.randint(0, 255), True, saturation)
         center_pix = random.randint(radius, n_pix - radius - 1)
 
     # So that drops are biggest at beginning of phase
+    # Has side effect that colors can change when drop is biggest
     if shifted:
         phase = (phase + 0.5) % 1
     drop_shape = calculate_drop(phase, radius)
     d_start = center_pix - radius
     d_end = center_pix + radius
-    rgb_values[d_start: d_end + 1] = rgb
+    if warm_shift:
+        final_rgb = shift(rgb, warm_rgb, 1. - saturation)
+    else:
+        final_rgb = rgb
+    rgb_values[d_start: d_end + 1] = final_rgb
     rgb_values[d_start: d_end + 1] = rgb_values[d_start: d_end + 1] * drop_shape
 
     cache["rgb"] = rgb

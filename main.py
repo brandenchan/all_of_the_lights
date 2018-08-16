@@ -1,6 +1,5 @@
 from pixel_fns import *
 from pattern_fns import *
-from colors import *
 from constants import *
 import random
 import time
@@ -9,17 +8,14 @@ from display import Display
 import curses
 from phase import modify_phase, calculate_phase
 
-# DEFAULT WARM SHIFT
 # HOW TO IMPLEMENT TRANSITION EFFECTS
 # ORBITS IN OPPOSITE DIRECTIONS
 # FLASHING NON PERSISTANT EFFECT
 # Droplet from centre then droplet from edges
 
-
 class Controller:
     def __init__(self):
-        self.rgb = WARM_CANDLE
-        self.saturation = 0.
+        self.saturation = 1.
         self.freq = 1
         self.tempo = 60
         self.show_disp = True
@@ -30,8 +26,10 @@ class Controller:
         self.speed_factor = 1
         self.pixels = get_pixels()
         self.n_pix = self.pixels.count()
-        self.function = pulse
-        self.brightness = 0.5
+        self.function = pixel_train
+        self.brightness = 1.
+        self.warm_shift = True
+        self.warm_rgb = CANDLE
         self.shape = (self.n_pix, 3)
         if self.show_disp:
             self.display = Display()
@@ -61,9 +59,10 @@ class Controller:
                 phase, direction = modify_phase(phase, n_cycles, curr_speed)
 
                 kwargs = {"shape": self.shape,
-                          "rgb": self.rgb,
                           "n_cycles": n_cycles,
-                          "saturation": self.saturation}
+                          "saturation": self.saturation,
+                          "warm_rgb": self.warm_rgb,
+                          "warm_shift": self.warm_shift}
 
                 # Generate new colors (persisting)
                 rgb_values, cache = self.function(phase,

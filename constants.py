@@ -12,6 +12,14 @@ DOWN = 258
 MINUS_KEY = 45
 PLUS_KEY = 61
 
+# RGB Values for different colors
+
+CANDLE = (255, 147, 41)
+WARM_CANDLE = (255, 130, 30)
+BLUE = (0, 0, 255)
+PINK = (255, 10, 70)
+
+
 FN_NAMES = {pulse: "Pulse",
             pixel_train: "Pixel Train",
             droplets: "Droplets"}

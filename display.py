@@ -1,16 +1,17 @@
 import curses
-# from pyfiglet import Figlet
 
 INDENT = 3
-TITLE_LINE = 2
-PHASE_LINE = 3
-TEMPO_LINE = 5
-MODE_LINE = 6
-BRIGHT_LINE = 7
-SPEED_LINE = 8
-SATURATION_LINE = 9
+WORD_LEN = 20
+
+PHASE_LINE = 4
+TEMPO_LINE = 6
+MODE_LINE = 7
+BRIGHT_LINE = 8
+SPEED_LINE = 9
+SATURATION_LINE = 10
 DEBUG_LINE = 12
 FREQ_LINE = 13
+SYNC_LINE = 11
 
 # MAYBE DONT UPDATE SO MUCH
 
@@ -21,25 +22,29 @@ class Display:
         curses.cbreak()
         self.s.keypad(1)
         self.s.nodelay(1)
-        title = "ALL OF THE LIGHTS"
-        self.s.addstr(TITLE_LINE,
-                      INDENT,
-                      title)
+
+        self.s.addstr(0, 0, "____ _    _       ____ ____    ___ _  _ ____    _    _ ____ _  _ ___ ____ ")
+        self.s.addstr(1, 0, "|__| |    |       |  | |___     |  |__| |___    |    | | __ |__|  |  [__  ")
+        self.s.addstr(2, 0, "|  | |___ |___    |__| |        |  |  | |___    |___ | |__] |  |  |  ___] ")
+
         self.s.addstr(TEMPO_LINE,
                       INDENT,
-                      "Tempo: ")
+                      "(space) Tempo: ")
         self.s.addstr(MODE_LINE,
                       INDENT,
-                      "Mode: ")
+                      " (asd)  Mode: ")
         self.s.addstr(BRIGHT_LINE,
                       INDENT,
-                      "Brightness: ")
+                      " (< >)  Brightness: ")
         self.s.addstr(SPEED_LINE,
                       INDENT,
-                      "Speed: ")
+                      " (^ v)  Speed: ")
         self.s.addstr(SATURATION_LINE,
                       INDENT,
-                      "Saturation: ")
+                      " (- +)  Saturation: ")
+        self.s.addstr(SYNC_LINE,
+                      INDENT,
+                      "  (c)   Sync")
         self.s.refresh()
 
     def getch(self):
@@ -52,19 +57,18 @@ class Display:
         self.set_field("speed", speed)
         self.set_field("saturation", saturation)
         self.draw_phase(phase, direction, speed)
-        self.s.move(0,0)
+        self.s.move(15,0)
         self.s.refresh()
 
     def set_field(self, cat, val, indent=3, word_len=0):
 
         if cat == "tempo":
             line = TEMPO_LINE
-            word_len = 7
+            word_len = WORD_LEN
             string = str(round(val, 1))
 
         elif cat == "debug":
             line = DEBUG_LINE
-            word_len = 0
             string = str(val)
 
         elif cat == "freq":
@@ -73,17 +77,17 @@ class Display:
 
         elif cat == "mode":
             line = MODE_LINE
-            word_len = 6
+            word_len = WORD_LEN
             string = str(val)
 
         elif cat == "brightness":
             line = BRIGHT_LINE
-            word_len = 12
+            word_len = WORD_LEN
             string = str(int(round(val, 2) * 100)) + "%" 
 
         elif cat == "speed":
             line = SPEED_LINE
-            word_len = 12
+            word_len = WORD_LEN
             if val >= 1:
                 string = str(int(val)) + "x"
             else:
@@ -92,7 +96,7 @@ class Display:
 
         elif cat == "saturation":
             line = SATURATION_LINE
-            word_len = 12
+            word_len = WORD_LEN
             string = str(int(val * 100)) + "%"
         
         self.s.move(line, indent + word_len)
