@@ -31,27 +31,6 @@ def wheel(pos, ret_rgb=False, saturation=100):
         return rgb
     return Adafruit_WS2801.RGB_to_color(*rgb)
 
-def set_pixel(pixels, color, idx=None):
-    if idx is None:
-        for i in range(pixels.count()):
-            pixels.set_pixel(i, color)
-    else:
-        pixels.set_pixel(idx, color)
-
-def _dim_one(pixels, idx, factor, floor):
-    r, g, b = pixels.get_pixel_rgb(idx)
-    r = max(int(r * factor), floor)
-    g = max(int(g * factor), floor)
-    b = max(int(b * factor), floor)
-    pixels.set_pixel(idx, Adafruit_WS2801.RGB_to_color( r, g, b ))
-
-def dim(pixels, idx=None, factor=0.9, floor=0):
-    if idx is None:
-        for i in range(pixels.count()):
-            _dim_one(pixels, i, factor, floor)
-    else:
-        _dim_one(pixels, idx, factor, floor)
-
 def turn_off(pixels):
     pixels.clear()
     pixels.show()
@@ -60,23 +39,12 @@ def turn_off(pixels):
     pixels.clear()
     pixels.show()
 
-def interp_color(rgb_1, rgb_2, phase_pos, phase):
-    r = interp_one(rgb_1[0], rgb_2[0], phase_pos, phase)
-    g = interp_one(rgb_1[1], rgb_2[1], phase_pos, phase)
-    b = interp_one(rgb_1[2], rgb_2[2], phase_pos, phase)
-    return (r,g,b)
-
 def get_all_values(pixels):
     return np.asarray([pixels.get_pixel_rgb(i) for i in range(pixels.count()) ])
 
 def set_all_values(pixels, array):
     for i, (r, g, b) in enumerate(array):
         pixels.set_pixel(i, Adafruit_WS2801.RGB_to_color(int(r), int(g), int(b)))
-        
-def interp_one(c_1, c_2, phase_pos, phase):
-    if phase:
-        phase_pos = 1 - phase_pos
-    return int((c_1 - c_2) * phase_pos + c_1)
 
 def random_rgb():
     return (random.randint(0, 255),
