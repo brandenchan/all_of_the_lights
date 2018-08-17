@@ -5,11 +5,14 @@ SPACEBAR = 32
 ENTER = 10
 S_KEY = 115
 A_KEY = 97
+B_KEY = 98
 C_KEY = 99
 D_KEY = 100
 Q_KEY = 113
 W_KEY = 119
 E_KEY = 101
+F_KEY = 102
+G_KEY = 103
 RIGHT = 261
 LEFT = 260
 UP = 259
@@ -27,7 +30,9 @@ PINK = (255, 10, 70)
 
 PATTERN_FN_NAMES = {pulse: "Pulse",
                     pixel_train: "Pixel Train",
-                    droplets: "Droplets"}
+                    droplets: "Droplets",
+                    orbits: "Orbits",
+                    sparks: "Sparks"}
 
 MUTE_FN_NAMES = {instant: "Instant",
                  gradual: "Gradual",

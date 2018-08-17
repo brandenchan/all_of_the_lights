@@ -9,14 +9,9 @@ from display import Display
 import curses
 from phase import modify_phase, calculate_phase
 
-# HOW TO IMPLEMENT TRANSITION EFFECTS
-# ORBITS IN OPPOSITE DIRECTIONS
-# FLASHING NON PERSISTANT EFFECT
-# Droplet from centre then droplet from edges
-
 class Controller:
     def __init__(self):
-        self.saturation = 1.
+        self.saturation = 0.
         self.freq = 1
         self.tempo = 60
         self.show_disp = True
@@ -27,7 +22,7 @@ class Controller:
         self.speed_factor = 1
         self.pixels = get_pixels()
         self.n_pix = self.pixels.count()
-        self.function = pixel_train
+        self.function = droplets
         self.brightness = 1.
         self.warm_shift = True
         self.warm_rgb = CANDLE
@@ -35,6 +30,8 @@ class Controller:
         self.mute = False
         self.mute_fn = instant
         self.mute_start = None
+        self.show_key = False
+        self.alt = True
         if self.show_disp:
             self.display = Display()
 
@@ -52,8 +49,8 @@ class Controller:
                     self.process_press()
 
                 # Timing
-                act_start = time.time()
-                elapsed = (act_start - self.start_time) * 1000 
+                loop_start = time.time()
+                elapsed = (loop_start - self.start_time) * 1000 
                 phase, n_cycles = calculate_phase(elapsed, self.cycle_time)
 
                 # Speeding up or slowing down phase
@@ -66,7 +63,9 @@ class Controller:
                           "n_cycles": n_cycles,
                           "saturation": self.saturation,
                           "warm_rgb": self.warm_rgb,
-                          "warm_shift": self.warm_shift}
+                          "warm_shift": self.warm_shift,
+                          "alt": self.alt,
+                          "loop_start": loop_start}
 
                 # Generate new colors (persisting)
                 rgb_values, cache = self.function(phase,
@@ -78,17 +77,17 @@ class Controller:
 
                 # Mute functions
                 if self.mute:
-                    elapsed_mute = (act_start - self.mute_start) * 1000
-                    rgb_values_curr = (rgb_values * self.mute_fn(elapsed_mute, kwargs)).astype(int)
+                    elapsed_mute = (loop_start - self.mute_start) * 1000
+                    rgb_values_curr = (rgb_values_curr * self.mute_fn(elapsed_mute, kwargs)).astype(int)
 
                 # Set and show pixel values
                 set_all_values(self.pixels, rgb_values_curr)
                 self.pixels.show()
 
                 # Timing
-                act_end = time.time()
-                act_dur = act_end - act_start
-                act_freq = 1000 / (act_dur * 1000)
+                loop_end = time.time()
+                loop_dur = loop_end - loop_start
+                act_freq = 1000 / (loop_dur * 1000)
 
                 # Update Display
                 if self.show_disp:
@@ -100,8 +99,10 @@ class Controller:
                                         phase,
                                         direction,
                                         MUTE_FN_NAMES[self.mute_fn],
-                                        self.mute)
+                                        self.mute,
+                                        self.alt)
                 
+
         finally:
             turn_off(self.pixels)
             if self.show_disp:
@@ -124,6 +125,12 @@ class Controller:
             self.function = pixel_train
         elif ch == D_KEY:
             self.function = droplets
+        elif ch == F_KEY:
+            self.function = orbits
+        elif ch == G_KEY:
+            self.function = sparks
+        elif ch == B_KEY:
+            self.alt = not self.alt
 
         # Master control keys
         elif ch == C_KEY:
@@ -165,7 +172,8 @@ class Controller:
             self.mute_fn = flicker
 
         elif ch != -1:
-            self.display.set_field("debug", ch)
+            if self.show_key:
+                self.display.set_field("debug", ch)
 
     def calculate_times(self):
         if not self.tap_start:
@@ -176,7 +184,6 @@ class Controller:
         self.tempo = new_tempo
         self.cycle_time = dur
         return True
-
 
 if __name__ == "__main__":
     c = Controller()

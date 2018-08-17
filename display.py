@@ -12,12 +12,13 @@ SYNC_LINE = 8
 MODE_LINE = 10
 BRIGHT_LINE = 11
 SATURATION_LINE = 12
+ALT_LINE = 13
 
-MUTE_MODE_LINE = 14
-MUTE_LINE = 15
+MUTE_MODE_LINE = 15
+MUTE_LINE = 16
 
-DEBUG_LINE = 16
-FREQ_LINE = 17
+DEBUG_LINE = 17
+FREQ_LINE = 18
 
 # MAYBE DONT UPDATE SO MUCH
 
@@ -38,7 +39,7 @@ class Display:
                       "(space) Tempo: ")
         self.s.addstr(MODE_LINE,
                       INDENT,
-                      " (asd)  Mode: ")
+                      "(asdfg) Mode: ")
         self.s.addstr(BRIGHT_LINE,
                       INDENT,
                       " (< >)  Brightness: ")
@@ -48,6 +49,9 @@ class Display:
         self.s.addstr(SATURATION_LINE,
                       INDENT,
                       " (- +)  Saturation: ")
+        self.s.addstr(ALT_LINE,
+                      INDENT,
+                      "  (b)   Alt: ")
         self.s.addstr(MUTE_MODE_LINE,
                       INDENT,
                       " (qwe)  Mute Mode: ")                     
@@ -71,7 +75,9 @@ class Display:
                phase,
                direction,
                mute_name,
-               mute):
+               mute,
+               alt):
+               
         self.set_field("tempo", tempo)
         self.set_field("mode", mode)
         self.set_field("brightness", brightness)
@@ -79,9 +85,10 @@ class Display:
         self.set_field("saturation", saturation)
         self.set_field("mute_mode", mute_name)
         self.set_field("mute", mute)
+        self.set_field("alt", alt)
 
         self.draw_phase(phase, direction, speed)
-        self.s.move(15,0)
+        self.s.move(1,19)
         self.s.refresh()
 
     def set_field(self, cat, val, indent=3, word_len=0):
@@ -136,9 +143,18 @@ class Display:
             else:
                 string = "Off"
 
+        elif cat == "alt":
+            line = ALT_LINE
+            word_len = WORD_LEN
+            if val:
+                string = "On"
+            else:
+                string = "Off"
+
         self.s.move(line, indent + word_len)
         self.s.clrtoeol()
         self.s.addstr(line, indent + word_len, string)
+
 
     def draw_phase(self, phase, direction, multiplier, size=30):            
         step = 1. / size
