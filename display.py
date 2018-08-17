@@ -4,14 +4,20 @@ INDENT = 3
 WORD_LEN = 20
 
 PHASE_LINE = 4
+
 TEMPO_LINE = 6
-MODE_LINE = 7
-BRIGHT_LINE = 8
-SPEED_LINE = 9
-SATURATION_LINE = 10
-DEBUG_LINE = 12
-FREQ_LINE = 13
-SYNC_LINE = 11
+SPEED_LINE = 7
+SYNC_LINE = 8
+
+MODE_LINE = 10
+BRIGHT_LINE = 11
+SATURATION_LINE = 12
+
+MUTE_MODE_LINE = 14
+MUTE_LINE = 15
+
+DEBUG_LINE = 16
+FREQ_LINE = 17
 
 # MAYBE DONT UPDATE SO MUCH
 
@@ -42,6 +48,12 @@ class Display:
         self.s.addstr(SATURATION_LINE,
                       INDENT,
                       " (- +)  Saturation: ")
+        self.s.addstr(MUTE_MODE_LINE,
+                      INDENT,
+                      " (qwe)  Mute Mode: ")                     
+        self.s.addstr(MUTE_LINE,
+                      INDENT,
+                      "(enter) Mute: ")
         self.s.addstr(SYNC_LINE,
                       INDENT,
                       "  (c)   Sync")
@@ -50,12 +62,24 @@ class Display:
     def getch(self):
         return self.s.getch()
 
-    def update(self, tempo, mode, brightness, speed, saturation, phase, direction):
+    def update(self,
+               tempo,
+               mode,
+               brightness,
+               speed,
+               saturation,
+               phase,
+               direction,
+               mute_name,
+               mute):
         self.set_field("tempo", tempo)
         self.set_field("mode", mode)
         self.set_field("brightness", brightness)
         self.set_field("speed", speed)
         self.set_field("saturation", saturation)
+        self.set_field("mute_mode", mute_name)
+        self.set_field("mute", mute)
+
         self.draw_phase(phase, direction, speed)
         self.s.move(15,0)
         self.s.refresh()
@@ -99,11 +123,24 @@ class Display:
             word_len = WORD_LEN
             string = str(int(val * 100)) + "%"
         
+        elif cat == "mute_mode":
+            line = MUTE_MODE_LINE
+            word_len = WORD_LEN
+            string = val
+
+        elif cat == "mute":
+            line = MUTE_LINE
+            word_len = WORD_LEN
+            if val:
+                string = "On"
+            else:
+                string = "Off"
+
         self.s.move(line, indent + word_len)
         self.s.clrtoeol()
         self.s.addstr(line, indent + word_len, string)
 
-    def draw_phase(self, phase, direction, multiplier, size=20):            
+    def draw_phase(self, phase, direction, multiplier, size=30):            
         step = 1. / size
         p = phase // step
         if direction == 1:
@@ -126,6 +163,3 @@ class Display:
         self.s.keypad(0)
         curses.echo()
         curses.endwin()
-
-    # def draw_box(self):
-    #     self.std

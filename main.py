@@ -1,5 +1,6 @@
 from pixel_fns import *
 from pattern_fns import *
+from mute_fns import instant, gradual, flicker
 from constants import *
 import random
 import time
@@ -31,6 +32,9 @@ class Controller:
         self.warm_shift = True
         self.warm_rgb = CANDLE
         self.shape = (self.n_pix, 3)
+        self.mute = False
+        self.mute_fn = instant
+        self.mute_start = None
         if self.show_disp:
             self.display = Display()
 
@@ -72,6 +76,11 @@ class Controller:
                 # Master dimming
                 rgb_values_curr = (rgb_values * self.brightness).astype(int)
 
+                # Mute functions
+                if self.mute:
+                    elapsed_mute = (act_start - self.mute_start) * 1000
+                    rgb_values_curr = (rgb_values * self.mute_fn(elapsed_mute, kwargs)).astype(int)
+
                 # Set and show pixel values
                 set_all_values(self.pixels, rgb_values_curr)
                 self.pixels.show()
@@ -84,12 +93,14 @@ class Controller:
                 # Update Display
                 if self.show_disp:
                     self.display.update(self.tempo,
-                                        FN_NAMES[self.function],
+                                        PATTERN_FN_NAMES[self.function],
                                         self.brightness,
                                         self.speed_factor,
                                         self.saturation,
                                         phase,
-                                        direction)
+                                        direction,
+                                        MUTE_FN_NAMES[self.mute_fn],
+                                        self.mute)
                 
         finally:
             turn_off(self.pixels)
@@ -106,7 +117,7 @@ class Controller:
             if tempo_update:
                 self.start_time = time.time()
 
-        # Toggle different lighting modes
+        # Lighting modes
         elif ch == A_KEY:
             self.function = pulse
         elif ch == S_KEY:
@@ -137,6 +148,21 @@ class Controller:
             self.saturation -= 0.02
             self.saturation = min(self.saturation, 1)
             self.saturation = max(self.saturation, 0)
+
+        # Mute keys
+        elif ch == ENTER:
+            if not self.mute:
+                self.mute = True
+                self.mute_start = time.time()
+            else:
+                self.mute = False
+                self.mute_start = None
+        elif ch == Q_KEY:
+            self.mute_fn = instant
+        elif ch == W_KEY:
+            self.mute_fn = gradual
+        elif ch == E_KEY:
+            self.mute_fn = flicker
 
         elif ch != -1:
             self.display.set_field("debug", ch)
