@@ -4,10 +4,7 @@ import random
 from phase import modify_phase
 import time
 
-def pixel_train(phase, cache, kwargs):
-
-    step = 2.5
-    dim_factor = 0.92
+def pixel_train(phase, cache, kwargs, step=2.5, dim_factor=0.92):
 
     shape = kwargs["shape"]
     n_pix = shape[0]
@@ -53,9 +50,7 @@ def pixel_train(phase, cache, kwargs):
     return rgb_values, cache
 
 
-def pulse(phase, cache, kwargs):
-
-    floor = 0.2
+def pulse(phase, cache, kwargs, floor=0.2):
 
     warm_shift = kwargs["warm_shift"]
     warm_rgb = kwargs["warm_rgb"]
@@ -109,9 +104,6 @@ def pulse(phase, cache, kwargs):
 
 def droplets(phase, cache, kwargs):
 
-    shifted = True
-    radius = 24
-
     # Get var from kwargs
     curr_cycle = kwargs["n_cycles"]
     shape = kwargs["shape"]
@@ -120,6 +112,7 @@ def droplets(phase, cache, kwargs):
     warm_shift = kwargs["warm_shift"]
     warm_rgb = kwargs["warm_rgb"]
     alt = kwargs["alt"]
+    radius = (n_pix / 2) - 1
 
 
     # Initialize new cache
@@ -185,13 +178,7 @@ def calculate_drop(phase, radius, transform="linear"):
 
     return np.expand_dims(pixels_phased, 1)
 
-
-
-
-def orbits(phase, cache, kwargs):
-
-    dim_factor = 0.8
-    margin = 70
+def orbits(phase, cache, kwargs, dim_factor=0.8, margin=70):
     
     shape = kwargs["shape"]
     n_pix = shape[0]
@@ -254,10 +241,7 @@ def orbits(phase, cache, kwargs):
 
     return rgb_values, cache
 
-def sparks(phase, cache, kwargs):
-
-    active_fraction = 0.5
-    wait_factor = 0.4
+def sparks(phase, cache, kwargs, active_fraction=0.5, wait_factor=0.4):
 
     shape = kwargs["shape"]
     n_pix = shape[0]
@@ -303,10 +287,3 @@ def sparks(phase, cache, kwargs):
     cache["wait_start"] = wait_start
 
     return rgb_values, cache
-
-
-
-
-
-
-
