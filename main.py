@@ -1,3 +1,5 @@
+# THINK THROUGH LOGIC TO MAKE ANIMATION WORK
+
 try:
     from pixels import get_pixels, set_all_values
 except ModuleNotFoundError:
