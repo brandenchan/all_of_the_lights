@@ -1,5 +1,5 @@
-from pattern_fns import *
-from mute_fns import *
+from patterns import *
+from mute import *
 
 SPACEBAR = 32
 ENTER = 10

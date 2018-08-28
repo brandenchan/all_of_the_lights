@@ -1,6 +1,9 @@
-from pixel_fns import *
-from pattern_fns import *
-from mute_fns import instant, gradual, flicker
+try:
+    from pixels import get_pixels, set_all_values
+except ModuleNotFoundError:
+    pass
+from patterns import pulse, pixel_train, droplets, orbits, sparks
+from mute import instant, gradual, flicker
 from constants import *
 import random
 import time
@@ -8,9 +11,19 @@ import numpy as np
 from display import Display
 import curses
 from phase import modify_phase, calculate_phase
+from animation import Animation
 
 class Controller:
     def __init__(self):
+        try:
+            self.pixels = get_pixels()
+            self.n_pix = self.pixels.count()
+            self.output = "lights"
+        except NameError:
+            self.output = "animation"
+            self.n_pix = 50
+            self.animation = Animation()
+
         self.saturation = 0.
         self.freq = 1
         self.tempo = 60
@@ -20,9 +33,7 @@ class Controller:
         self.tap_start = None
         self.tap_end = None
         self.speed_factor = 1
-        self.pixels = get_pixels()
-        self.n_pix = self.pixels.count()
-        self.function = droplets
+        self.function = pulse
         self.brightness = 1.
         self.warm_shift = True
         self.warm_rgb = CANDLE
@@ -31,7 +42,7 @@ class Controller:
         self.mute_fn = instant
         self.mute_start = None
         self.show_key = False
-        self.alt = True
+        self.alt = False
         if self.show_disp:
             self.display = Display()
 
@@ -81,8 +92,11 @@ class Controller:
                     rgb_values_curr = (rgb_values_curr * self.mute_fn(elapsed_mute, kwargs)).astype(int)
 
                 # Set and show pixel values
-                set_all_values(self.pixels, rgb_values_curr)
-                self.pixels.show()
+                if self.output == "lights":
+                    set_all_values(self.pixels, rgb_values_curr)
+                    self.pixels.show()
+                elif self.output == "animation":
+                    self.animation.update(rgb_values_curr)
 
                 # Timing
                 loop_end = time.time()
@@ -102,9 +116,9 @@ class Controller:
                                         self.mute,
                                         self.alt)
                 
-
         finally:
-            turn_off(self.pixels)
+            if self.output == "lights":
+                turn_off(self.pixels)
             if self.show_disp:
                 self.display.close()
 
