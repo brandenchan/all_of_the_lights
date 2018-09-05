@@ -1,3 +1,7 @@
+""" Contains the light pattern functions. Each function
+takes (phase, cache, kwargs) as arguments so that they
+can be used interchangably within the Controller class """
+
 import numpy as np
 from colors import wheel, shift
 import random

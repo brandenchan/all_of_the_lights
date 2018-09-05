@@ -1,3 +1,6 @@
+""" Contains functions which handle the interface to
+the WS2801 LED lights """
+
 import Adafruit_WS2801
 import numpy as np
 
@@ -8,7 +11,6 @@ def get_pixels():
     PIXEL_COUNT = 50
 
     # The WS2801 library makes use of the BCM pin numbering scheme. See the README.md for details.
-
     # Specify a software SPI connection for Raspberry Pi on the following pins:
     PIXEL_CLOCK = 18
     PIXEL_DOUT  = 23

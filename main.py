@@ -1,3 +1,6 @@
+""" Contains the Controller class which handles the main loop 
+that is constantly running and also the key press functions """
+
 import argparse
 
 parser = argparse.ArgumentParser(
