@@ -1,9 +1,13 @@
-# THINK THROUGH LOGIC TO MAKE ANIMATION WORK
+import argparse
 
-try:
+parser = argparse.ArgumentParser(
+                    formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+parser.add_argument('--no_lights', dest='no_lights', action='store_true')
+parser.set_defaults(feature=True)
+args = parser.parse_args()
+
+if not args.no_lights:
     from pixels import get_pixels, set_all_values
-except ModuleNotFoundError:
-    pass
 from patterns import pulse, pixel_train, droplets, orbits, sparks
 from mute import instant, gradual, flicker
 from constants import *
@@ -17,15 +21,14 @@ from animation import Animation
 
 class Controller:
     def __init__(self):
-        try:
-            self.pixels = get_pixels()
-            self.n_pix = self.pixels.count()
-            self.output = "lights"
-        except NameError:
+        if args.no_lights:
             self.output = "animation"
             self.n_pix = 50
             self.animation = Animation()
-
+        else:
+            self.pixels = get_pixels()
+            self.n_pix = self.pixels.count()
+            self.output = "lights"
         self.saturation = 0.
         self.freq = 1
         self.tempo = 60
