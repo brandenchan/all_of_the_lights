@@ -1,0 +1,3 @@
+numpy
+adafruit_ws2801
+pygame
