@@ -1,7 +1,6 @@
 from pixels import set_all_values, get_pixels
 import Adafruit_WS2801
 
-
 try:
     pixels = get_pixels()
     while True:

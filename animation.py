@@ -2,10 +2,6 @@ import pygame
 import numpy as np
 import sys
 
-
-BLUE = (0, 0, 255)
-RED = (255, 0, 0)
-WHITE = (255, 255, 255)
 DIMENSIONS = (1000, 50)
 BLACK = (0, 0, 0)
 BORDER = 20

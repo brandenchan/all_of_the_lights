@@ -1,3 +1,7 @@
+""" This file contains the Display object which generates a command line display interface.
+In future, there should be more separation between the display state and the function which
+generates the display """
+
 import curses
 
 INDENT = 3
@@ -20,11 +24,13 @@ MUTE_LINE = 16
 DEBUG_LINE = 17
 FREQ_LINE = 18
 
-# MAYBE DONT UPDATE SO MUCH
+WIN_HEIGHT = 20
+WIN_WIDTH = 80
 
 class Display:
     def __init__(self):
-        self.s = curses.initscr()
+        curses.initscr()
+        self.s = curses.newwin(WIN_HEIGHT, WIN_WIDTH, 0, 0)
         curses.noecho()
         curses.cbreak()
         self.s.keypad(1)
@@ -155,7 +161,6 @@ class Display:
         self.s.clrtoeol()
         self.s.addstr(line, indent + word_len, string)
 
-
     def draw_phase(self, phase, direction, multiplier, size=30):            
         step = 1. / size
         p = phase // step
@@ -172,8 +177,6 @@ class Display:
                 self.s.addstr(" ")
         self.s.addstr("|")
         
-        
-
     def close(self):
         curses.nocbreak()
         self.s.keypad(0)
