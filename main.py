@@ -10,7 +10,7 @@ parser.set_defaults(feature=True)
 args = parser.parse_args()
 
 if not args.no_lights:
-    from pixels import get_pixels, set_all_values
+    from pixels import get_pixels, set_all_values, turn_off
 from patterns import pulse, pixel_train, droplets, orbits, sparks
 from mute import instant, gradual, flicker
 from constants import *
