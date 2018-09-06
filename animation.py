@@ -1,3 +1,6 @@
+""" This contains the Animation class which generates a pygame
+animation of the lights """
+
 import pygame
 import numpy as np
 import sys

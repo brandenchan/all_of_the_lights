@@ -1,6 +1,8 @@
 """ Contains the light pattern functions. Each function
 takes (phase, cache, kwargs) as arguments so that they
-can be used interchangably within the Controller class """
+can be used interchangably within the Controller class.
+Each function returns a numpy array with the rgb values
+for each light. """
 
 import numpy as np
 from colors import wheel, shift

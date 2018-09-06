@@ -1,7 +1,17 @@
-""" Contains the Controller class which handles the main loop 
-that is constantly running and also the key press functions """
+""" Contains the Controller class which is the core of the program"""
 
 import argparse
+import curses
+import random
+import time
+
+import numpy as np
+from animation import Animation
+from constants import *
+from display import Display
+from mute import flicker, gradual, instant
+from patterns import droplets, orbits, pixel_train, pulse, sparks
+from phase import calculate_phase, modify_phase
 
 parser = argparse.ArgumentParser(
                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -11,18 +21,11 @@ args = parser.parse_args()
 
 if not args.no_lights:
     from pixels import get_pixels, set_all_values, turn_off
-from patterns import pulse, pixel_train, droplets, orbits, sparks
-from mute import instant, gradual, flicker
-from constants import *
-import random
-import time
-import numpy as np
-from display import Display
-import curses
-from phase import modify_phase, calculate_phase
-from animation import Animation
 
 class Controller:
+    """ This class contains the main loop which handles the key press functions,
+    the light updates and display updates """
+
     def __init__(self):
         if args.no_lights:
             self.output = "animation"

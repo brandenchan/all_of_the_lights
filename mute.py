@@ -1,4 +1,8 @@
-import numpy as np
+""" Contains the light mute functions. Each function
+takes (elapsed, kwargs) as arguments so that they
+can be used interchangably within the Controller class. 
+Each function returns a numpy array with the dimming factor
+for each rgb value of each light. """
 
 DURATION = 5000
 

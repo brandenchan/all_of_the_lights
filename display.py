@@ -1,6 +1,4 @@
-""" This file contains the Display object which generates a command line display interface.
-In future, there should be more separation between the display state and the function which
-generates the display """
+""" This file contains the Display object which generates a command line display interface."""
 
 import curses
 

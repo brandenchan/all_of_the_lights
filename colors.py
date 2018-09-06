@@ -1,3 +1,6 @@
+""" Here are functions which either generate or
+modify RGB color values """
+
 import random
 import numpy as np
 
