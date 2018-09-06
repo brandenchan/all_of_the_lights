@@ -4,6 +4,15 @@ This repository contains code to display, control and switch between light patte
 
 There is also the option of showing the light patterns in a pygame window if no lights are available.
 
+### Features
+
+* Real time control of light patterns
+* Tap tempo syncing
+* Controls to double or half tempo
+* 5 different light patterns each with an alternate mode
+* Ability to control brightness and color palette
+* Mute functionality to turn lights off instantly or gradually
+
 
 ## Hardware
 
