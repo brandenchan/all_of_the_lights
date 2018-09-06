@@ -4,6 +4,8 @@ This repository contains code to display, control and switch between light patte
 
 There is also the option of showing the light patterns in a pygame window if no lights are available.
 
+![The command light console](https://raw.githubusercontent.com/randomsgs/all_of_the_lights/master/media/controller.png)
+
 ### Features
 
 * Real time control of light patterns
@@ -16,9 +18,7 @@ There is also the option of showing the light patterns in a pygame window if no 
 
 ## Hardware
 
-Wire your LED lights as according to the diagram in this blog by AndyPi (https://andypi.co.uk/2014/12/27/raspberry-pi-controlled-ws2801-rgb-leds/
-) EXCEPT with the CI and DI outputs of the LEDs going to pins 18 and 23. The exact ports can be recofigured in the pixels.py file.
-
+Wire your LED lights as according to the diagram in this [blog by AndyPi](https://andypi.co.uk/2014/12/27/raspberry-pi-controlled-ws2801-rgb-leds/)
 
 ## Software
 
@@ -39,3 +39,16 @@ python main.py
 # To display an animation of the lights
 python main.py --no_lights
 ```
+
+# Controls
+
+* space bar     - tap tempo
+* up / down     - double / half speed
+* c             - sync phase
+* a/s/d/f/g         - choose light pattern
+* left / right  - set brightness
+* \+ / -         - set saturation
+* b             - alt mode
+* q/w/e           - choose mute function
+* enter         - mute
+
