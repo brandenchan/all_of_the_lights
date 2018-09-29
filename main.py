@@ -161,11 +161,11 @@ class Controller:
         elif ch == C_KEY:
             self.start_time = time.time()
         elif ch == LEFT:
-            self.brightness -= 0.02
+            self.brightness -= 0.05
             self.brightness = min(self.brightness, 1)
             self.brightness = max(self.brightness, 0)
         elif ch == RIGHT:
-            self.brightness += 0.02
+            self.brightness += 0.05
             self.brightness = min(self.brightness, 1)
             self.brightness = max(self.brightness, 0)
         elif ch == UP:
@@ -173,11 +173,11 @@ class Controller:
         elif ch == DOWN:
             self.speed_factor = self.speed_factor / 2.
         elif ch == PLUS_KEY:
-            self.saturation += 0.02
+            self.saturation += 0.05
             self.saturation = min(self.saturation, 1)
             self.saturation = max(self.saturation, 0)
         elif ch == MINUS_KEY:
-            self.saturation -= 0.02
+            self.saturation -= 0.05
             self.saturation = min(self.saturation, 1)
             self.saturation = max(self.saturation, 0)
 
