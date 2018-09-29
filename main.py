@@ -53,7 +53,7 @@ class Controller:
         self.mute_fn = instant
         self.mute_start = None
         self.show_key = False
-        self.alt = False
+        self.alt = True
         if self.show_disp:
             self.display = Display()
 
