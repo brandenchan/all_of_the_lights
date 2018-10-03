@@ -5,11 +5,11 @@ import argparse
 import sys
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-r", "--red", type=int, default=None,
+parser.add_argument("-r", "--red", type=int, default=255,
                     help="Red channel value 0 - 255")
-parser.add_argument("-g", "--green", type=int, default=None,
+parser.add_argument("-g", "--green", type=int, default=130,
                     help="Green channel value 0 - 255")
-parser.add_argument("-b", "--blue", type=int, default=None,
+parser.add_argument("-b", "--blue", type=int, default=30,
                     help="Blue channel value 0 - 255")
 args = parser.parse_args()
 
