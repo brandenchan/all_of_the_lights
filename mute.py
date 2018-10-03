@@ -4,6 +4,8 @@ can be used interchangably within the Controller class.
 Each function returns a numpy array with the dimming factor
 for each rgb value of each light. """
 
+import numpy as np
+
 DURATION = 5000
 
 def instant(elapsed, kwargs):
