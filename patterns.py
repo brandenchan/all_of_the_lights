@@ -56,7 +56,7 @@ def pixel_train(phase, cache, kwargs, step=2.5, dim_factor=0.92):
     return rgb_values, cache
 
 
-def pulse(phase, cache, kwargs, floor=0.2, color_step=0.1):
+def pulse(phase, cache, kwargs, floor=0.2, color_step=0.1, color_range=5):
 
     warm_shift = kwargs["warm_shift"]
     warm_rgb = kwargs["warm_rgb"]
@@ -74,8 +74,9 @@ def pulse(phase, cache, kwargs, floor=0.2, color_step=0.1):
             cache["offset"] = np.random.randn(n_pix)
         else:
             cache["offset"] = np.zeros(n_pix)
+        cache["color_offset"] = np.random.randint(-color_range, color_range, size=(n_pix, 3))
 
-
+    color_offset = cache["color_offset"]
     wheel_idx = (cache["wheel_idx"] + color_step) % 256
     old_alt = cache["old_alt"]
     if alt != old_alt:
@@ -101,10 +102,13 @@ def pulse(phase, cache, kwargs, floor=0.2, color_step=0.1):
         rgb = shift(rgb, warm_rgb, 1. - saturation)
     rgb_values = np.zeros(shape)
     rgb_values[:] = rgb
+    rgb_values += color_offset
+    rgb_values %= 256
     rgb_values = rgb_values * sin_floored
 
     cache["wheel_idx"] = wheel_idx
     cache["old_alt"] = alt
+    cache["color_offset"] = color_offset
 
     return rgb_values, cache
 

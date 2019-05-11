@@ -5,6 +5,9 @@ import random
 import numpy as np
 
 def wheel(pos, ret_rgb=False, saturation=100):
+    # NOTE: the ret_rgb argument is useless
+    # Remove in future and remove all instances
+    # in the rest of the code
     desaturate = 255 - (saturation * 255.)
     if pos < 85:
         rgb = [pos * 3, 255 - pos * 3, 0]
