@@ -103,7 +103,8 @@ def pulse(phase, cache, kwargs, floor=0.2, color_step=0.1, color_range=5):
     rgb_values = np.zeros(shape)
     rgb_values[:] = rgb
     rgb_values += color_offset
-    rgb_values %= 256
+    rgb_values = np.maximum(rgb_values, 0)
+    rgb_values = np.minimum(rgb_values, 255)
     rgb_values = rgb_values * sin_floored
 
     cache["wheel_idx"] = wheel_idx
