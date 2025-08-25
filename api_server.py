@@ -459,16 +459,17 @@ def lights_on():
     if not light_service:
         return jsonify({'success': False, 'message': 'Service not initialized'}), 500
     
-    # Set to a nice default: pulse pattern, full brightness
+    # Set to warm white: solid pattern, good brightness, very low saturation for warm white
     results = []
-    results.append(light_service.set_pattern('pulse'))
-    results.append(light_service.set_brightness(1.0))
+    results.append(light_service.set_pattern('solid'))
+    results.append(light_service.set_brightness(0.8))   # 80% brightness - comfortable default
+    results.append(light_service.set_saturation(0.05))  # Very low saturation = warm white
     results.append(light_service.set_mute(False))
     
     success = all(r['success'] for r in results)
     return jsonify({
         'success': success,
-        'message': 'Lights turned on',
+        'message': 'Warm white lights turned on',
         'details': results
     })
 

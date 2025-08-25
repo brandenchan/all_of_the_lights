@@ -252,6 +252,33 @@ def orbits(phase, cache, kwargs, dim_factor=0.8, margin=70):
 
     return rgb_values, cache
 
+def solid(phase, cache, kwargs):
+    """Solid color pattern - no animation, just constant color"""
+    shape = kwargs["shape"]
+    saturation = kwargs["saturation"]
+    warm_shift = kwargs["warm_shift"]
+    warm_rgb = kwargs["warm_rgb"]
+    brightness = kwargs.get("brightness", 1.0)
+    
+    # Create solid color across all pixels
+    from colors import wheel, shift
+    
+    # Use a warm color (orange/amber range) for warm white effect
+    color_value = 30  # Orange/amber color on the color wheel
+    rgb = wheel(color_value, True, saturation)
+    
+    if warm_shift:
+        rgb = shift(rgb, warm_rgb, 1.0 - saturation)
+    
+    # Apply brightness
+    rgb = tuple(int(c * brightness) for c in rgb)
+    
+    # Fill all pixels with the same color
+    rgb_values = np.full(shape, rgb, dtype=np.uint8)
+    
+    return rgb_values, cache
+
+
 def sparks(phase, cache, kwargs, active_fraction=0.5, wait_factor=0.4):
 
     shape = kwargs["shape"]

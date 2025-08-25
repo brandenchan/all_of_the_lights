@@ -32,7 +32,8 @@ PATTERN_FN_NAMES = {pulse: "Pulse",
                     pixel_train: "Pixel Train",
                     droplets: "Droplets",
                     orbits: "Orbits",
-                    sparks: "Sparks"}
+                    sparks: "Sparks",
+                    solid: "Solid"}
 
 MUTE_FN_NAMES = {instant: "Instant",
                  gradual: "Gradual",
