@@ -228,7 +228,8 @@ class APILightService:
                 'pixel_train': 'Moving train of colored pixels',
                 'droplets': 'Water droplet-like expanding effects',
                 'orbits': 'Two colored lights orbiting around the strip',
-                'sparks': 'Random sparkling effect'
+                'sparks': 'Random sparkling effect',
+                'solid': 'Constant color without animation'
             }
         }
     

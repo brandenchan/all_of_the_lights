@@ -7,7 +7,7 @@ import time
 import threading
 import numpy as np
 from constants import *
-from patterns import droplets, orbits, pixel_train, pulse, sparks
+from patterns import droplets, orbits, pixel_train, pulse, sparks, solid
 from phase import calculate_phase, modify_phase
 from mute import flicker, gradual, instant
 
