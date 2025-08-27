@@ -486,43 +486,49 @@ def delete_preset(preset_id):
 # Convenience endpoints for Siri/HomeKit integration
 @app.route('/api/lights/on', methods=['POST'])
 def lights_on():
-    """Turn lights on with 1-second fade (convenience endpoint)"""
+    """Turn lights on with warm white (convenience endpoint)"""
     if not light_service:
         return jsonify({'success': False, 'message': 'Service not initialized'}), 500
     
     import time
     
-    # Set to warm white: solid pattern, good brightness, very low saturation for warm white
+    # Set to warm white with delays to prevent flashing
     results = []
+    
+    # First set all parameters while muted to avoid intermediate flashes
+    results.append(light_service.set_mute(True, 'instant'))  # Mute first
+    time.sleep(0.05)
+    
     results.append(light_service.set_pattern('solid'))
+    time.sleep(0.05)
+    
     results.append(light_service.set_brightness(0.8))   # 80% brightness - comfortable default
+    time.sleep(0.05)
+    
     results.append(light_service.set_saturation(0.05))  # Very low saturation = warm white
-    results.append(light_service.set_mute(False))       # Make sure lights are on
+    time.sleep(0.05)
     
-    # Add a small delay to ensure settings are applied
-    time.sleep(0.1)
-    
-    # Now apply fade_in effect (this will start from dim and fade to full brightness)
-    results.append(light_service.set_mute(True, 'fade_in'))
+    # Finally unmute to show the final result
+    results.append(light_service.set_mute(False))       # Show lights with all settings applied
     
     success = all(r['success'] for r in results)
     return jsonify({
         'success': success,
-        'message': 'Warm white lights turned on with fade',
+        'message': 'Warm white lights turned on',
         'details': results
     })
 
 
 @app.route('/api/lights/off', methods=['POST'])
 def lights_off():
-    """Turn lights off with 1-second fade (convenience endpoint)"""
+    """Turn lights off (convenience endpoint)"""
     if not light_service:
         return jsonify({'success': False, 'message': 'Service not initialized'}), 500
     
-    result = light_service.set_mute(True, 'fade_out')
+    result = light_service.set_mute(True, 'instant')
     return jsonify({
         'success': result['success'],
-        'message': 'Lights turned off with fade',
+        'message': 'Lights turned off',
         'details': result
     })
 
