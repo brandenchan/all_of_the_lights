@@ -272,42 +272,41 @@ class APILightService:
         Returns:
             dict: Result with success status
         """
-        with self._lock:
-            if not self._initialized:
-                return {'success': False, 'message': 'Service not initialized'}
+        if not self._initialized:
+            return {'success': False, 'message': 'Service not initialized'}
+        
+        # Handle percentage values
+        if brightness is not None and brightness > 1.0:
+            brightness = brightness / 100.0
+        if saturation is not None and saturation > 1.0:
+            saturation = saturation / 100.0
             
-            results = []
-            
-            # Set all parameters in the controller atomically
-            if pattern is not None:
-                success = self.controller.set_pattern(pattern)
-                results.append(f'Pattern: {pattern} {"✓" if success else "✗"}')
-                
-            if brightness is not None:
-                if brightness > 1.0:
-                    brightness = brightness / 100.0
-                actual = self.controller.set_brightness(brightness)
-                results.append(f'Brightness: {int(actual * 100)}%')
-                
-            if saturation is not None:
-                if saturation > 1.0:
-                    saturation = saturation / 100.0
-                actual = self.controller.set_saturation(saturation)
-                results.append(f'Saturation: {int(actual * 100)}%')
-                
-            if hue is not None:
-                actual = self.controller.set_hue(hue)
-                results.append(f'Hue: {int(actual)}°')
-                
-            if mute is not None:
-                success = self.controller.set_mute(mute, 'instant')
-                results.append(f'Mute: {mute} {"✓" if success else "✗"}')
-            
-            return {
-                'success': True,
-                'message': 'All settings applied atomically',
-                'details': results
-            }
+        # Use the controller's atomic update method
+        success = self.controller.set_all_atomic(
+            pattern=pattern,
+            brightness=brightness, 
+            saturation=saturation,
+            hue=hue,
+            mute=mute
+        )
+        
+        results = []
+        if pattern is not None:
+            results.append(f'Pattern: {pattern}')
+        if brightness is not None:
+            results.append(f'Brightness: {int(brightness * 100)}%')
+        if saturation is not None:
+            results.append(f'Saturation: {int(saturation * 100)}%')
+        if hue is not None:
+            results.append(f'Hue: {int(hue)}°')
+        if mute is not None:
+            results.append(f'Mute: {mute}')
+        
+        return {
+            'success': success,
+            'message': 'All settings applied atomically (with rendering pause)',
+            'details': results
+        }
 
     def get_available_mute_types(self):
         """Get list of available mute types

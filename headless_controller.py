@@ -59,6 +59,7 @@ class HeadlessController:
         self.mute_fn = instant
         self.mute_start = None
         self.alt = True
+        self._updating = False  # Flag to pause rendering during atomic updates
         
         # Threading controls
         self._running = False
@@ -103,6 +104,11 @@ class HeadlessController:
 
                 # Thread-safe access to parameters
                 with self._lock:
+                    # Skip rendering during atomic updates
+                    if self._updating:
+                        time.sleep(0.001)  # Short sleep during update
+                        continue
+                        
                     curr_speed = self.speed_factor
                     curr_function = self.function
                     curr_brightness = self.brightness
@@ -248,6 +254,52 @@ class HeadlessController:
                     self.mute_start = None
             return True
         return False
+    
+    def set_all_atomic(self, pattern=None, brightness=None, saturation=None, hue=None, mute=None):
+        """Set multiple parameters atomically without intermediate rendering"""
+        with self._lock:
+            # Pause rendering during the update
+            self._updating = True
+            
+            try:
+                # Set all parameters
+                if pattern is not None:
+                    pattern_map = {
+                        'pulse': pulse,
+                        'pixel_train': pixel_train,
+                        'droplets': droplets,
+                        'orbits': orbits,
+                        'sparks': sparks,
+                        'solid': solid
+                    }
+                    if pattern.lower() in pattern_map:
+                        self.function = pattern_map[pattern.lower()]
+                
+                if brightness is not None:
+                    self.brightness = max(0.0, min(1.0, float(brightness)))
+                    
+                if saturation is not None:
+                    self.saturation = max(0.0, min(1.0, float(saturation)))
+                    
+                if hue is not None:
+                    hue_val = max(0, min(360, float(hue)))
+                    self.hue = int(hue_val * 255 / 360)
+                    
+                if mute is not None:
+                    self.mute = bool(mute)
+                    if self.mute and not self.mute_start:
+                        self.mute_start = time.time()
+                    elif not self.mute:
+                        self.mute_start = None
+                        
+                # Short delay to ensure any in-progress frame completes
+                time.sleep(0.02)
+                
+            finally:
+                # Resume rendering
+                self._updating = False
+                
+        return True
     
     def get_status(self):
         """Get current controller status"""
