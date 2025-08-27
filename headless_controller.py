@@ -60,6 +60,8 @@ class HeadlessController:
         self.mute_start = None
         self.alt = True
         self._updating = False  # Flag to pause rendering during atomic updates
+        self._static_mode = False  # Flag for static patterns that don't need continuous updates
+        self._last_render = None   # Store last rendered frame for static mode
         
         # Threading controls
         self._running = False
@@ -108,6 +110,31 @@ class HeadlessController:
                     if self._updating:
                         time.sleep(0.001)  # Short sleep during update
                         continue
+                    
+                    # Static mode optimization - only render once for solid patterns
+                    if self._static_mode and self._last_render is not None:
+                        # Just use the cached render for static patterns
+                        rgb_values_curr = self._last_render
+                        
+                        # Still need to handle mute in static mode
+                        curr_mute = self.mute
+                        curr_mute_fn = self.mute_fn
+                        curr_mute_start = self.mute_start
+                        
+                        if curr_mute and curr_mute_start:
+                            elapsed_mute = (loop_start - curr_mute_start) * 1000
+                            kwargs = {"shape": self.shape}
+                            rgb_values_curr = (rgb_values_curr * curr_mute_fn(elapsed_mute, kwargs)).astype(int)
+                        
+                        # Output the static frame
+                        if self.output == "lights":
+                            self.set_all_values(self.pixels, rgb_values_curr)
+                            self.pixels.show()
+                        elif self.output == "animation":
+                            self.animation.update(rgb_values_curr)
+                        
+                        time.sleep(0.1)  # Longer sleep for static mode
+                        continue
                         
                     curr_speed = self.speed_factor
                     curr_function = self.function
@@ -145,6 +172,11 @@ class HeadlessController:
                 if curr_mute and curr_mute_start:
                     elapsed_mute = (loop_start - curr_mute_start) * 1000
                     rgb_values_curr = (rgb_values_curr * curr_mute_fn(elapsed_mute, kwargs)).astype(int)
+
+                # Cache result for static patterns (before mute is applied)
+                with self._lock:
+                    if self._static_mode and curr_function == solid and not curr_mute:
+                        self._last_render = (rgb_values * curr_brightness).astype(int)
 
                 # Set and show pixel values
                 if self.output == "lights":
@@ -274,6 +306,13 @@ class HeadlessController:
                     }
                     if pattern.lower() in pattern_map:
                         self.function = pattern_map[pattern.lower()]
+                        # Enable static mode for solid pattern to eliminate continuous rendering
+                        if pattern.lower() == 'solid':
+                            self._static_mode = True
+                            self._last_render = None  # Clear cache to force re-render
+                        else:
+                            self._static_mode = False
+                            self._last_render = None
                 
                 if brightness is not None:
                     self.brightness = max(0.0, min(1.0, float(brightness)))
