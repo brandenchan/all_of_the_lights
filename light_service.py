@@ -51,14 +51,15 @@ class APILightService:
         Returns:
             dict: Result with success status and message
         """
-        if not self._initialized:
-            return {'success': False, 'message': 'Service not initialized'}
-        
-        success = self.controller.set_pattern(pattern_name)
-        if success:
-            return {'success': True, 'message': f'Pattern set to {pattern_name}', 'pattern': pattern_name}
-        else:
-            return {'success': False, 'message': f'Invalid pattern name: {pattern_name}'}
+        with self._lock:
+            if not self._initialized:
+                return {'success': False, 'message': 'Service not initialized'}
+            
+            success = self.controller.set_pattern(pattern_name)
+            if success:
+                return {'success': True, 'message': f'Pattern set to {pattern_name}', 'pattern': pattern_name}
+            else:
+                return {'success': False, 'message': f'Invalid pattern name: {pattern_name}'}
     
     def set_brightness(self, brightness):
         """Set brightness level
@@ -69,20 +70,21 @@ class APILightService:
         Returns:
             dict: Result with success status and actual brightness value
         """
-        if not self._initialized:
-            return {'success': False, 'message': 'Service not initialized'}
-        
-        # Handle percentage values
-        if brightness > 1.0:
-            brightness = brightness / 100.0
-        
-        actual_brightness = self.controller.set_brightness(brightness)
-        return {
-            'success': True, 
-            'message': f'Brightness set to {int(actual_brightness * 100)}%',
-            'brightness': actual_brightness,
-            'brightness_percent': int(actual_brightness * 100)
-        }
+        with self._lock:
+            if not self._initialized:
+                return {'success': False, 'message': 'Service not initialized'}
+            
+            # Handle percentage values
+            if brightness > 1.0:
+                brightness = brightness / 100.0
+            
+            actual_brightness = self.controller.set_brightness(brightness)
+            return {
+                'success': True, 
+                'message': f'Brightness set to {int(actual_brightness * 100)}%',
+                'brightness': actual_brightness,
+                'brightness_percent': int(actual_brightness * 100)
+            }
     
     def set_saturation(self, saturation):
         """Set color saturation
@@ -93,20 +95,42 @@ class APILightService:
         Returns:
             dict: Result with success status and actual saturation value
         """
-        if not self._initialized:
-            return {'success': False, 'message': 'Service not initialized'}
+        with self._lock:
+            if not self._initialized:
+                return {'success': False, 'message': 'Service not initialized'}
+            
+            # Handle percentage values
+            if saturation > 1.0:
+                saturation = saturation / 100.0
+            
+            actual_saturation = self.controller.set_saturation(saturation)
+            return {
+                'success': True,
+                'message': f'Saturation set to {int(actual_saturation * 100)}%',
+                'saturation': actual_saturation,
+                'saturation_percent': int(actual_saturation * 100)
+            }
+    
+    def set_hue(self, hue):
+        """Set color hue
         
-        # Handle percentage values
-        if saturation > 1.0:
-            saturation = saturation / 100.0
-        
-        actual_saturation = self.controller.set_saturation(saturation)
-        return {
-            'success': True,
-            'message': f'Saturation set to {int(actual_saturation * 100)}%',
-            'saturation': actual_saturation,
-            'saturation_percent': int(actual_saturation * 100)
-        }
+        Args:
+            hue (float): Hue value (0-360 degrees)
+            
+        Returns:
+            dict: Result with success status and actual hue value
+        """
+        with self._lock:
+            if not self._initialized:
+                return {'success': False, 'message': 'Service not initialized'}
+            
+            actual_hue = self.controller.set_hue(hue)
+            return {
+                'success': True,
+                'message': f'Hue set to {int(actual_hue)}°',
+                'hue': actual_hue,
+                'hue_degrees': int(actual_hue)
+            }
     
     def set_speed(self, speed_factor):
         """Set animation speed multiplier
@@ -117,15 +141,16 @@ class APILightService:
         Returns:
             dict: Result with success status and actual speed value
         """
-        if not self._initialized:
-            return {'success': False, 'message': 'Service not initialized'}
-        
-        actual_speed = self.controller.set_speed(speed_factor)
-        return {
-            'success': True,
-            'message': f'Speed set to {actual_speed}x',
-            'speed_factor': actual_speed
-        }
+        with self._lock:
+            if not self._initialized:
+                return {'success': False, 'message': 'Service not initialized'}
+            
+            actual_speed = self.controller.set_speed(speed_factor)
+            return {
+                'success': True,
+                'message': f'Speed set to {actual_speed}x',
+                'speed_factor': actual_speed
+            }
     
     def set_tempo(self, bpm):
         """Set tempo in beats per minute
@@ -187,19 +212,20 @@ class APILightService:
         Returns:
             dict: Result with success status and mute state
         """
-        if not self._initialized:
-            return {'success': False, 'message': 'Service not initialized'}
-        
-        success = self.controller.set_mute(enabled, mute_type)
-        if success:
-            return {
-                'success': True,
-                'message': f'Mute {"enabled" if enabled else "disabled"} with {mute_type} mode',
-                'mute': enabled,
-                'mute_type': mute_type
-            }
-        else:
-            return {'success': False, 'message': f'Invalid mute type: {mute_type}'}
+        with self._lock:
+            if not self._initialized:
+                return {'success': False, 'message': 'Service not initialized'}
+            
+            success = self.controller.set_mute(enabled, mute_type)
+            if success:
+                return {
+                    'success': True,
+                    'message': f'Mute {"enabled" if enabled else "disabled"} with {mute_type} mode',
+                    'mute': enabled,
+                    'mute_type': mute_type
+                }
+            else:
+                return {'success': False, 'message': f'Invalid mute type: {mute_type}'}
     
     def get_status(self):
         """Get comprehensive service and controller status
@@ -244,7 +270,9 @@ class APILightService:
             'mute_types': {
                 'instant': 'Immediately turn off lights',
                 'gradual': 'Gradually fade lights to off',
-                'flicker': 'Flicker effect before turning off'
+                'flicker': 'Flicker effect before turning off',
+                'fade_out': 'Fade lights out over 1 second',
+                'fade_in': 'Fade lights in over 1 second'
             }
         }
 

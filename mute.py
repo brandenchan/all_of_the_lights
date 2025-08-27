@@ -19,6 +19,22 @@ def gradual(elapsed, kwargs, duration=DURATION):
     factor = (duration - elapsed) / float(duration)
     return np.full(shape, factor)
 
+def fade_out(elapsed, kwargs, duration=1000):
+    """Fade out over specified duration (default 1 second)"""
+    shape = kwargs["shape"]
+    if elapsed > duration:
+        return np.zeros(shape)
+    factor = (duration - elapsed) / float(duration)
+    return np.full(shape, factor)
+
+def fade_in(elapsed, kwargs, duration=1000):
+    """Fade in over specified duration (default 1 second)"""
+    shape = kwargs["shape"]
+    if elapsed > duration:
+        return np.ones(shape)
+    factor = elapsed / float(duration)
+    return np.full(shape, factor)
+
 def flicker(elapsed, kwargs, duration=DURATION):
     shape = kwargs["shape"]
     if elapsed > duration:

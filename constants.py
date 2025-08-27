@@ -37,4 +37,6 @@ PATTERN_FN_NAMES = {pulse: "Pulse",
 
 MUTE_FN_NAMES = {instant: "Instant",
                  gradual: "Gradual",
-                 flicker: "Flicker"}
+                 flicker: "Flicker",
+                 fade_out: "Fade Out",
+                 fade_in: "Fade In"}

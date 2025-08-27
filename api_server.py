@@ -144,6 +144,9 @@ def set_pattern(pattern_name):
     # Log the pattern change for visibility
     if result['success']:
         print(f"🎨 Pattern changed to: {pattern_name}", flush=True)
+        # Small delay to prevent race conditions with rapid successive calls
+        import time
+        time.sleep(0.05)
     else:
         print(f"❌ Failed to set pattern: {pattern_name}", flush=True)
     
@@ -207,6 +210,34 @@ def saturation_control():
         return jsonify(result)
     except (ValueError, TypeError):
         return jsonify({'success': False, 'message': 'Invalid saturation value'}), 400
+
+
+@app.route('/api/hue', methods=['GET', 'POST'])
+def hue_control():
+    """Get or set color hue"""
+    if not light_service:
+        return jsonify({'success': False, 'message': 'Service not initialized'}), 500
+    
+    if request.method == 'GET':
+        status = light_service.get_status()
+        return jsonify({
+            'success': True,
+            'hue': status.get('hue', 0),
+            'hue_degrees': int(status.get('hue', 0))
+        })
+    
+    # POST request
+    data = request.get_json() or {}
+    hue = data.get('hue', data.get('value'))
+    
+    if hue is None:
+        return jsonify({'success': False, 'message': 'hue value required'}), 400
+    
+    try:
+        result = light_service.set_hue(float(hue))
+        return jsonify(result)
+    except (ValueError, TypeError):
+        return jsonify({'success': False, 'message': 'Invalid hue value'}), 400
 
 
 @app.route('/api/speed', methods=['GET', 'POST'])
@@ -455,33 +486,45 @@ def delete_preset(preset_id):
 # Convenience endpoints for Siri/HomeKit integration
 @app.route('/api/lights/on', methods=['POST'])
 def lights_on():
-    """Turn lights on (convenience endpoint)"""
+    """Turn lights on with 1-second fade (convenience endpoint)"""
     if not light_service:
         return jsonify({'success': False, 'message': 'Service not initialized'}), 500
+    
+    import time
     
     # Set to warm white: solid pattern, good brightness, very low saturation for warm white
     results = []
     results.append(light_service.set_pattern('solid'))
     results.append(light_service.set_brightness(0.8))   # 80% brightness - comfortable default
     results.append(light_service.set_saturation(0.05))  # Very low saturation = warm white
-    results.append(light_service.set_mute(False))
+    results.append(light_service.set_mute(False))       # Make sure lights are on
+    
+    # Add a small delay to ensure settings are applied
+    time.sleep(0.1)
+    
+    # Now apply fade_in effect (this will start from dim and fade to full brightness)
+    results.append(light_service.set_mute(True, 'fade_in'))
     
     success = all(r['success'] for r in results)
     return jsonify({
         'success': success,
-        'message': 'Warm white lights turned on',
+        'message': 'Warm white lights turned on with fade',
         'details': results
     })
 
 
 @app.route('/api/lights/off', methods=['POST'])
 def lights_off():
-    """Turn lights off (convenience endpoint)"""
+    """Turn lights off with 1-second fade (convenience endpoint)"""
     if not light_service:
         return jsonify({'success': False, 'message': 'Service not initialized'}), 500
     
-    result = light_service.set_mute(True, 'instant')
-    return jsonify(result)
+    result = light_service.set_mute(True, 'fade_out')
+    return jsonify({
+        'success': result['success'],
+        'message': 'Lights turned off with fade',
+        'details': result
+    })
 
 
 @app.route('/api/party-mode', methods=['POST'])

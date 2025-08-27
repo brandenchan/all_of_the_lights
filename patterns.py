@@ -256,24 +256,20 @@ def solid(phase, cache, kwargs):
     """Solid color pattern - no animation, just constant color"""
     shape = kwargs["shape"]
     saturation = kwargs["saturation"]
+    hue = kwargs.get("hue", 30)  # Get hue from controller, default to warm orange
     warm_shift = kwargs["warm_shift"]
     warm_rgb = kwargs["warm_rgb"]
-    brightness = kwargs.get("brightness", 1.0)
     
     # Create solid color across all pixels
     from colors import wheel, shift
     
-    # Use a warm color (orange/amber range) for warm white effect
-    color_value = 30  # Orange/amber color on the color wheel
-    rgb = wheel(color_value, True, saturation)
+    # Use the controller's hue value
+    rgb = wheel(hue, True, saturation)
     
     if warm_shift:
         rgb = shift(rgb, warm_rgb, 1.0 - saturation)
     
-    # Apply brightness
-    rgb = tuple(int(c * brightness) for c in rgb)
-    
-    # Fill all pixels with the same color
+    # Fill all pixels with the same color (brightness is applied later by controller)
     rgb_values = np.full(shape, rgb, dtype=np.uint8)
     
     return rgb_values, cache

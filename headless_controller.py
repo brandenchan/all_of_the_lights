@@ -51,6 +51,7 @@ class HeadlessController:
         self.speed_factor = 1
         self.function = pulse
         self.brightness = 1.0
+        self.hue = 30  # Default to warm orange/amber (30 on color wheel)
         self.warm_shift = True
         self.warm_rgb = CANDLE
         self.shape = (self.n_pix, 3)
@@ -106,6 +107,7 @@ class HeadlessController:
                     curr_function = self.function
                     curr_brightness = self.brightness
                     curr_saturation = self.saturation
+                    curr_hue = self.hue
                     curr_warm_rgb = self.warm_rgb
                     curr_warm_shift = self.warm_shift
                     curr_alt = self.alt
@@ -121,6 +123,7 @@ class HeadlessController:
                 kwargs = {"shape": self.shape,
                           "n_cycles": n_cycles,
                           "saturation": curr_saturation,
+                          "hue": curr_hue,
                           "warm_rgb": curr_warm_rgb,
                           "warm_shift": curr_warm_shift,
                           "alt": curr_alt,
@@ -188,6 +191,15 @@ class HeadlessController:
             self.saturation = saturation
         return saturation
     
+    def set_hue(self, hue):
+        """Set color hue (0-360 degrees, mapped to 0-255 color wheel)"""
+        # Convert 0-360 degree hue to 0-255 color wheel value
+        hue = max(0, min(360, float(hue)))
+        wheel_value = int(hue * 255 / 360)
+        with self._lock:
+            self.hue = wheel_value
+        return hue
+    
     def set_speed(self, speed_factor):
         """Set speed multiplier"""
         speed_factor = max(0.1, min(8.0, float(speed_factor)))
@@ -217,10 +229,13 @@ class HeadlessController:
     
     def set_mute(self, mute_enabled, mute_type='instant'):
         """Set mute state and type"""
+        from mute import fade_in, fade_out
         mute_map = {
             'instant': instant,
             'gradual': gradual,
-            'flicker': flicker
+            'flicker': flicker,
+            'fade_out': fade_out,
+            'fade_in': fade_in
         }
         
         if mute_type.lower() in mute_map:
@@ -257,6 +272,7 @@ class HeadlessController:
                 'pattern': pattern_name,
                 'brightness': self.brightness,
                 'saturation': self.saturation,
+                'hue': int(self.hue * 360 / 255),  # Convert back to 0-360 degrees
                 'speed_factor': self.speed_factor,
                 'tempo': self.tempo,
                 'alt_mode': self.alt,
