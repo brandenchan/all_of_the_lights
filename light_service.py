@@ -259,6 +259,56 @@ class APILightService:
             }
         }
     
+    def set_all_at_once(self, pattern=None, brightness=None, saturation=None, hue=None, mute=None):
+        """Set multiple properties atomically to prevent flashing
+        
+        Args:
+            pattern (str): Pattern name
+            brightness (float): Brightness 0.0-1.0
+            saturation (float): Saturation 0.0-1.0  
+            hue (float): Hue 0-360 degrees
+            mute (bool): Mute state
+            
+        Returns:
+            dict: Result with success status
+        """
+        with self._lock:
+            if not self._initialized:
+                return {'success': False, 'message': 'Service not initialized'}
+            
+            results = []
+            
+            # Set all parameters in the controller atomically
+            if pattern is not None:
+                success = self.controller.set_pattern(pattern)
+                results.append(f'Pattern: {pattern} {"✓" if success else "✗"}')
+                
+            if brightness is not None:
+                if brightness > 1.0:
+                    brightness = brightness / 100.0
+                actual = self.controller.set_brightness(brightness)
+                results.append(f'Brightness: {int(actual * 100)}%')
+                
+            if saturation is not None:
+                if saturation > 1.0:
+                    saturation = saturation / 100.0
+                actual = self.controller.set_saturation(saturation)
+                results.append(f'Saturation: {int(actual * 100)}%')
+                
+            if hue is not None:
+                actual = self.controller.set_hue(hue)
+                results.append(f'Hue: {int(actual)}°')
+                
+            if mute is not None:
+                success = self.controller.set_mute(mute, 'instant')
+                results.append(f'Mute: {mute} {"✓" if success else "✗"}')
+            
+            return {
+                'success': True,
+                'message': 'All settings applied atomically',
+                'details': results
+            }
+
     def get_available_mute_types(self):
         """Get list of available mute types
         

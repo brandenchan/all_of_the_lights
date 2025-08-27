@@ -490,32 +490,19 @@ def lights_on():
     if not light_service:
         return jsonify({'success': False, 'message': 'Service not initialized'}), 500
     
-    import time
+    # Set all properties atomically to prevent flashing
+    result = light_service.set_all_at_once(
+        pattern='solid',
+        brightness=0.8,      # 80% brightness - comfortable default  
+        saturation=0.05,     # Very low saturation = warm white
+        hue=30,              # Warm orange/amber hue
+        mute=False           # Make sure lights are on
+    )
     
-    # Set to warm white with delays to prevent flashing
-    results = []
-    
-    # First set all parameters while muted to avoid intermediate flashes
-    results.append(light_service.set_mute(True, 'instant'))  # Mute first
-    time.sleep(0.05)
-    
-    results.append(light_service.set_pattern('solid'))
-    time.sleep(0.05)
-    
-    results.append(light_service.set_brightness(0.8))   # 80% brightness - comfortable default
-    time.sleep(0.05)
-    
-    results.append(light_service.set_saturation(0.05))  # Very low saturation = warm white
-    time.sleep(0.05)
-    
-    # Finally unmute to show the final result
-    results.append(light_service.set_mute(False))       # Show lights with all settings applied
-    
-    success = all(r['success'] for r in results)
     return jsonify({
-        'success': success,
-        'message': 'Warm white lights turned on',
-        'details': results
+        'success': result['success'],
+        'message': 'Warm white lights turned on (atomic operation)',
+        'details': result
     })
 
 
