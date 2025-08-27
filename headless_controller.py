@@ -164,7 +164,8 @@ class HeadlessController:
             'pixel_train': pixel_train,
             'droplets': droplets,
             'orbits': orbits,
-            'sparks': sparks
+            'sparks': sparks,
+            'solid': solid
         }
         
         if pattern_name.lower() in pattern_map:
