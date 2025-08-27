@@ -212,6 +212,13 @@ class HeadlessController:
         if pattern_name.lower() in pattern_map:
             with self._lock:
                 self.function = pattern_map[pattern_name.lower()]
+                # Enable static mode only for solid pattern
+                if pattern_name.lower() == 'solid':
+                    self._static_mode = True
+                    self._last_render = None  # Clear cache to force re-render
+                else:
+                    self._static_mode = False
+                    self._last_render = None
             return True
         return False
     
@@ -220,6 +227,9 @@ class HeadlessController:
         brightness = max(0.0, min(1.0, float(brightness)))
         with self._lock:
             self.brightness = brightness
+            # Clear cache to force re-render in static mode
+            if self._static_mode:
+                self._last_render = None
         return brightness
     
     def set_saturation(self, saturation):
@@ -227,6 +237,9 @@ class HeadlessController:
         saturation = max(0.0, min(1.0, float(saturation)))
         with self._lock:
             self.saturation = saturation
+            # Clear cache to force re-render in static mode
+            if self._static_mode:
+                self._last_render = None
         return saturation
     
     def set_hue(self, hue):
@@ -236,6 +249,9 @@ class HeadlessController:
         wheel_value = int(hue * 255 / 360)
         with self._lock:
             self.hue = wheel_value
+            # Clear cache to force re-render in static mode
+            if self._static_mode:
+                self._last_render = None
         return hue
     
     def set_speed(self, speed_factor):
@@ -346,7 +362,7 @@ class HeadlessController:
             # Get pattern name
             pattern_name = 'unknown'
             for name, func in [('pulse', pulse), ('pixel_train', pixel_train), 
-                             ('droplets', droplets), ('orbits', orbits), ('sparks', sparks)]:
+                             ('droplets', droplets), ('orbits', orbits), ('sparks', sparks), ('solid', solid)]:
                 if self.function == func:
                     pattern_name = name
                     break
