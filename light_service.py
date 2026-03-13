@@ -308,6 +308,50 @@ class APILightService:
             'details': results
         }
 
+    def start_sunrise(self, duration_minutes=30, end_brightness=0.8,
+                       start_hue=20, end_hue=40,
+                       start_saturation=0.6, end_saturation=0.05,
+                       pattern='pulse', speed=0.3):
+        """Start a sunrise fade-in"""
+        with self._lock:
+            if not self._initialized:
+                return {'success': False, 'message': 'Service not initialized'}
+
+            # Set pattern and speed for sunrise
+            self.controller.set_pattern(pattern)
+            self.controller.set_speed(speed)
+
+            self.controller.start_sunrise(
+                duration_minutes=duration_minutes,
+                end_brightness=end_brightness,
+                start_hue=start_hue,
+                end_hue=end_hue,
+                start_saturation=start_saturation,
+                end_saturation=end_saturation,
+            )
+            return {
+                'success': True,
+                'message': f'Sunrise started ({duration_minutes} min)',
+                'duration_minutes': duration_minutes,
+                'end_brightness': end_brightness,
+            }
+
+    def stop_sunrise(self):
+        """Cancel sunrise, keep current brightness"""
+        with self._lock:
+            if not self._initialized:
+                return {'success': False, 'message': 'Service not initialized'}
+            self.controller.stop_sunrise()
+            return {'success': True, 'message': 'Sunrise cancelled'}
+
+    def get_sunrise_status(self):
+        """Get sunrise progress"""
+        with self._lock:
+            if not self._initialized:
+                return {'success': False, 'message': 'Service not initialized'}
+            status = self.controller.get_sunrise_status()
+            return {'success': True, **status}
+
     def get_available_mute_types(self):
         """Get list of available mute types
         

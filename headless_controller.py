@@ -62,6 +62,17 @@ class HeadlessController:
         self._updating = False  # Flag to pause rendering during atomic updates
         self._static_mode = False  # Flag for static patterns that don't need continuous updates
         self._last_render = None   # Store last rendered frame for static mode
+
+        # Sunrise state
+        self._sunrise_active = False
+        self._sunrise_start_time = None
+        self._sunrise_duration = 1800  # seconds (30 min default)
+        self._sunrise_start_brightness = 0.0
+        self._sunrise_end_brightness = 0.8
+        self._sunrise_start_hue = 20  # deep orange/red
+        self._sunrise_end_hue = 40    # warm white
+        self._sunrise_start_saturation = 0.6
+        self._sunrise_end_saturation = 0.05
         
         # Threading controls
         self._running = False
@@ -110,7 +121,28 @@ class HeadlessController:
                     if self._updating:
                         time.sleep(0.001)  # Short sleep during update
                         continue
-                    
+
+                    # Sunrise interpolation
+                    if self._sunrise_active and self._sunrise_start_time:
+                        elapsed_sunrise = loop_start - self._sunrise_start_time
+                        progress = min(1.0, elapsed_sunrise / self._sunrise_duration)
+
+                        # Linear interpolation of brightness, hue, saturation
+                        self.brightness = self._sunrise_start_brightness + (
+                            self._sunrise_end_brightness - self._sunrise_start_brightness) * progress
+                        hue_deg = self._sunrise_start_hue + (
+                            self._sunrise_end_hue - self._sunrise_start_hue) * progress
+                        self.hue = int(hue_deg * 255 / 360)
+                        self.saturation = self._sunrise_start_saturation + (
+                            self._sunrise_end_saturation - self._sunrise_start_saturation) * progress
+
+                        # Clear static cache so changes render
+                        if self._static_mode:
+                            self._last_render = None
+
+                        if progress >= 1.0:
+                            self._sunrise_active = False
+
                     # Static mode optimization - only render once for solid patterns
                     if self._static_mode and self._last_render is not None:
                         # Just use the cached render for static patterns
@@ -356,6 +388,56 @@ class HeadlessController:
                 
         return True
     
+    def start_sunrise(self, duration_minutes=30, end_brightness=0.8,
+                       start_hue=20, end_hue=40,
+                       start_saturation=0.6, end_saturation=0.05):
+        """Start a sunrise fade-in over the given duration"""
+        with self._lock:
+            self._sunrise_duration = duration_minutes * 60
+            self._sunrise_start_brightness = 0.0
+            self._sunrise_end_brightness = max(0.0, min(1.0, float(end_brightness)))
+            self._sunrise_start_hue = float(start_hue)
+            self._sunrise_end_hue = float(end_hue)
+            self._sunrise_start_saturation = float(start_saturation)
+            self._sunrise_end_saturation = float(end_saturation)
+
+            # Set initial state
+            self.brightness = 0.0
+            self.hue = int(start_hue * 255 / 360)
+            self.saturation = start_saturation
+            self.mute = False
+            self.mute_start = None
+            self._last_render = None
+
+            # Activate
+            self._sunrise_start_time = time.time()
+            self._sunrise_active = True
+        return True
+
+    def stop_sunrise(self):
+        """Cancel sunrise, keep current brightness"""
+        with self._lock:
+            self._sunrise_active = False
+        return True
+
+    def get_sunrise_status(self):
+        """Get sunrise progress"""
+        with self._lock:
+            if not self._sunrise_active or not self._sunrise_start_time:
+                return {'active': False}
+            elapsed = time.time() - self._sunrise_start_time
+            progress = min(1.0, elapsed / self._sunrise_duration)
+            remaining = max(0, self._sunrise_duration - elapsed)
+            return {
+                'active': True,
+                'progress': round(progress, 4),
+                'progress_percent': round(progress * 100, 1),
+                'elapsed_seconds': round(elapsed, 1),
+                'remaining_seconds': round(remaining, 1),
+                'remaining_minutes': round(remaining / 60, 1),
+                'current_brightness': round(self.brightness, 3),
+            }
+
     def get_status(self):
         """Get current controller status"""
         with self._lock:

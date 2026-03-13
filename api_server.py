@@ -628,6 +628,37 @@ def energize_mode():
     })
 
 
+@app.route('/api/sunrise', methods=['GET', 'POST', 'DELETE'])
+def sunrise_control():
+    """Start, check, or cancel a sunrise alarm"""
+    if not light_service:
+        return jsonify({'success': False, 'message': 'Service not initialized'}), 500
+
+    if request.method == 'GET':
+        result = light_service.get_sunrise_status()
+        return jsonify(result)
+
+    elif request.method == 'POST':
+        data = request.get_json() or {}
+        result = light_service.start_sunrise(
+            duration_minutes=data.get('duration_minutes', 30),
+            end_brightness=data.get('end_brightness', 0.8),
+            start_hue=data.get('start_hue', 20),
+            end_hue=data.get('end_hue', 40),
+            start_saturation=data.get('start_saturation', 0.6),
+            end_saturation=data.get('end_saturation', 0.05),
+            pattern=data.get('pattern', 'pulse'),
+            speed=data.get('speed', 0.3),
+        )
+        print(f"🌅 Sunrise started: {data.get('duration_minutes', 30)} min", flush=True)
+        return jsonify(result)
+
+    elif request.method == 'DELETE':
+        result = light_service.stop_sunrise()
+        print("🌅 Sunrise cancelled", flush=True)
+        return jsonify(result)
+
+
 @app.route('/api/sleep-mode', methods=['POST'])
 def sleep_mode():
     """Activate sleep mode - very dim, slow fade (convenience endpoint)"""
