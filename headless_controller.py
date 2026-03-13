@@ -255,41 +255,13 @@ class HeadlessController:
         return False
     
     def set_brightness(self, brightness, transition=1.0):
-        """Set brightness (0.0 to 1.0) with optional transition time"""
+        """Set brightness (0.0 to 1.0)"""
         brightness = max(0.0, min(1.0, float(brightness)))
-        if transition > 0 and self._running:
-            threading.Thread(
-                target=self._fade_brightness,
-                args=(brightness, transition),
-                daemon=True
-            ).start()
-        else:
-            with self._lock:
-                self.brightness = brightness
-                if self._static_mode:
-                    self._last_render = None
-        return brightness
-
-    def _fade_brightness(self, target, duration):
-        """Fade brightness in a background thread"""
-        steps = int(duration * 30)  # 30 steps per second
-        if steps < 1:
-            steps = 1
         with self._lock:
-            start_val = self.brightness
-        for i in range(1, steps + 1):
-            progress = i / steps
-            eased = 1.0 - (1.0 - progress) ** 2
-            val = start_val + (target - start_val) * eased
-            with self._lock:
-                self.brightness = val
-                if self._static_mode:
-                    self._last_render = None
-            time.sleep(duration / steps)
-        with self._lock:
-            self.brightness = target
+            self.brightness = brightness
             if self._static_mode:
                 self._last_render = None
+        return brightness
 
     def set_saturation(self, saturation):
         """Set saturation (0.0 to 1.0)"""
