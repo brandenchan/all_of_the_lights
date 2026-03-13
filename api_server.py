@@ -176,7 +176,8 @@ def brightness_control():
         return jsonify({'success': False, 'message': 'brightness value required'}), 400
     
     try:
-        result = light_service.set_brightness(float(brightness))
+        transition = float(data.get('transition', 1.0))
+        result = light_service.set_brightness(float(brightness), transition=transition)
         if result['success']:
             print(f"💡 Brightness set to: {result['brightness_percent']}%", flush=True)
         return jsonify(result)

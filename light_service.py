@@ -61,26 +61,27 @@ class APILightService:
             else:
                 return {'success': False, 'message': f'Invalid pattern name: {pattern_name}'}
     
-    def set_brightness(self, brightness):
+    def set_brightness(self, brightness, transition=1.0):
         """Set brightness level
-        
+
         Args:
             brightness (float): Brightness level (0.0 to 1.0) or (0 to 100 for percentage)
-            
+            transition (float): Transition time in seconds (default 1.0)
+
         Returns:
             dict: Result with success status and actual brightness value
         """
         with self._lock:
             if not self._initialized:
                 return {'success': False, 'message': 'Service not initialized'}
-            
+
             # Handle percentage values
             if brightness > 1.0:
                 brightness = brightness / 100.0
-            
-            actual_brightness = self.controller.set_brightness(brightness)
+
+            actual_brightness = self.controller.set_brightness(brightness, transition=transition)
             return {
-                'success': True, 
+                'success': True,
                 'message': f'Brightness set to {int(actual_brightness * 100)}%',
                 'brightness': actual_brightness,
                 'brightness_percent': int(actual_brightness * 100)

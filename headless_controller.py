@@ -63,6 +63,13 @@ class HeadlessController:
         self._static_mode = False  # Flag for static patterns that don't need continuous updates
         self._last_render = None   # Store last rendered frame for static mode
 
+        # Brightness transition state
+        self._brightness_transition_active = False
+        self._brightness_transition_start = None
+        self._brightness_transition_duration = 1.0  # seconds
+        self._brightness_from = 0.0
+        self._brightness_to = 0.0
+
         # Sunrise state
         self._sunrise_active = False
         self._sunrise_start_time = None
@@ -142,6 +149,22 @@ class HeadlessController:
 
                         if progress >= 1.0:
                             self._sunrise_active = False
+
+                    # Brightness transition interpolation
+                    if self._brightness_transition_active and self._brightness_transition_start:
+                        elapsed_bt = loop_start - self._brightness_transition_start
+                        bt_progress = min(1.0, elapsed_bt / self._brightness_transition_duration)
+                        # Ease-out curve for natural feel
+                        eased = 1.0 - (1.0 - bt_progress) ** 2
+                        self.brightness = self._brightness_from + (
+                            self._brightness_to - self._brightness_from) * eased
+
+                        if self._static_mode:
+                            self._last_render = None
+
+                        if bt_progress >= 1.0:
+                            self.brightness = self._brightness_to
+                            self._brightness_transition_active = False
 
                     # Static mode optimization - only render once for solid patterns
                     if self._static_mode and self._last_render is not None:
@@ -254,11 +277,18 @@ class HeadlessController:
             return True
         return False
     
-    def set_brightness(self, brightness):
-        """Set brightness (0.0 to 1.0)"""
+    def set_brightness(self, brightness, transition=1.0):
+        """Set brightness (0.0 to 1.0) with optional transition time"""
         brightness = max(0.0, min(1.0, float(brightness)))
         with self._lock:
-            self.brightness = brightness
+            if transition > 0 and self._running:
+                self._brightness_from = self.brightness
+                self._brightness_to = brightness
+                self._brightness_transition_duration = float(transition)
+                self._brightness_transition_start = time.time()
+                self._brightness_transition_active = True
+            else:
+                self.brightness = brightness
             # Clear cache to force re-render in static mode
             if self._static_mode:
                 self._last_render = None
