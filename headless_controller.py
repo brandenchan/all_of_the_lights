@@ -49,7 +49,7 @@ class HeadlessController:
         self.cycle_time = 1000
         self.curr_cycle = 0
         self.speed_factor = 1
-        self.function = pulse
+        self.function = solid
         self.brightness = 1.0
         self.hue = 30  # Default to warm orange/amber (30 on color wheel)
         self.warm_shift = True
@@ -60,7 +60,7 @@ class HeadlessController:
         self.mute_start = None
         self.alt = True
         self._updating = False  # Flag to pause rendering during atomic updates
-        self._static_mode = False  # Flag for static patterns that don't need continuous updates
+        self._static_mode = True  # Flag for static patterns that don't need continuous updates
         self._last_render = None   # Store last rendered frame for static mode
 
         # Sunrise state
