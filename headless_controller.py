@@ -143,29 +143,23 @@ class HeadlessController:
                         if progress >= 1.0:
                             self._sunrise_active = False
 
-                    # Static mode optimization - only render once for solid patterns
+                    # Static mode optimization - skip SPI writes entirely when nothing changed
                     if self._static_mode and self._last_render is not None:
-                        # Just use the cached render for static patterns
-                        rgb_values_curr = self._last_render
-                        
-                        # Still need to handle mute in static mode
+                        # If muting, we need to animate — otherwise just sleep
                         curr_mute = self.mute
                         curr_mute_fn = self.mute_fn
                         curr_mute_start = self.mute_start
-                        
+
                         if curr_mute and curr_mute_start:
                             elapsed_mute = (loop_start - curr_mute_start) * 1000
                             kwargs = {"shape": self.shape}
-                            rgb_values_curr = (rgb_values_curr * curr_mute_fn(elapsed_mute, kwargs)).astype(int)
-                        
-                        # Output the static frame
-                        if self.output == "lights":
-                            self.set_all_values(self.pixels, rgb_values_curr)
-                            self.pixels.show()
-                        elif self.output == "animation":
-                            self.animation.update(rgb_values_curr)
-                        
-                        time.sleep(0.1)  # Longer sleep for static mode
+                            rgb_values_curr = (self._last_render * curr_mute_fn(elapsed_mute, kwargs)).astype(int)
+                            if self.output == "lights":
+                                self.set_all_values(self.pixels, rgb_values_curr)
+                                self.pixels.show()
+                        # else: frame unchanged, do NOT write to SPI
+
+                        time.sleep(0.1)
                         continue
                         
                     curr_speed = self.speed_factor
