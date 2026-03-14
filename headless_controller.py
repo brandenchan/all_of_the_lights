@@ -49,7 +49,7 @@ class HeadlessController:
         self.cycle_time = 1000
         self.curr_cycle = 0
         self.speed_factor = 1
-        self.function = solid
+        self.function = pulse
         self.brightness = 1.0
         self.hue = 30  # Default to warm orange/amber (30 on color wheel)
         self.warm_shift = True
@@ -60,7 +60,7 @@ class HeadlessController:
         self.mute_start = None
         self.alt = True
         self._updating = False  # Flag to pause rendering during atomic updates
-        self._static_mode = True  # Flag for static patterns that don't need continuous updates
+        self._static_mode = False  # Flag for static patterns that don't need continuous updates
         self._last_render = None   # Store last rendered frame for static mode
 
         # Sunrise state
@@ -145,21 +145,27 @@ class HeadlessController:
 
                     # Static mode optimization - only render once for solid patterns
                     if self._static_mode and self._last_render is not None:
+                        # Just use the cached render for static patterns
+                        rgb_values_curr = self._last_render
+                        
                         # Still need to handle mute in static mode
                         curr_mute = self.mute
                         curr_mute_fn = self.mute_fn
                         curr_mute_start = self.mute_start
-
+                        
                         if curr_mute and curr_mute_start:
                             elapsed_mute = (loop_start - curr_mute_start) * 1000
                             kwargs = {"shape": self.shape}
-                            rgb_values_curr = (self._last_render * curr_mute_fn(elapsed_mute, kwargs)).astype(int)
-                            if self.output == "lights":
-                                self.set_all_values(self.pixels, rgb_values_curr)
-                                self.pixels.show()
-
-                        # Don't write to SPI when nothing changed - WS2801 holds state
-                        time.sleep(0.1)
+                            rgb_values_curr = (rgb_values_curr * curr_mute_fn(elapsed_mute, kwargs)).astype(int)
+                        
+                        # Output the static frame
+                        if self.output == "lights":
+                            self.set_all_values(self.pixels, rgb_values_curr)
+                            self.pixels.show()
+                        elif self.output == "animation":
+                            self.animation.update(rgb_values_curr)
+                        
+                        time.sleep(0.1)  # Longer sleep for static mode
                         continue
                         
                     curr_speed = self.speed_factor
@@ -248,15 +254,16 @@ class HeadlessController:
             return True
         return False
     
-    def set_brightness(self, brightness, transition=1.0):
+    def set_brightness(self, brightness):
         """Set brightness (0.0 to 1.0)"""
         brightness = max(0.0, min(1.0, float(brightness)))
         with self._lock:
             self.brightness = brightness
+            # Clear cache to force re-render in static mode
             if self._static_mode:
                 self._last_render = None
         return brightness
-
+    
     def set_saturation(self, saturation):
         """Set saturation (0.0 to 1.0)"""
         saturation = max(0.0, min(1.0, float(saturation)))
