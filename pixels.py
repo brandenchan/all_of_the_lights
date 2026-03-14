@@ -2,16 +2,17 @@
 the WS2801 LED lights """
 
 import Adafruit_WS2801
-import Adafruit_GPIO.SPI as SPI
 import numpy as np
 
 BRIGHT_WHITE = Adafruit_WS2801.RGB_to_color(255, 255, 255)
 
+# Software SPI pins (BCM numbering)
+SPI_CLK = 25   # GPIO 25 (physical pin 22)
+SPI_DO = 18    # GPIO 18 (physical pin 12)
+
 def get_pixels():
     PIXEL_COUNT = 50
-    SPI_PORT = 0
-    SPI_DEVICE = 0
-    pixels = Adafruit_WS2801.WS2801Pixels(PIXEL_COUNT, spi=SPI.SpiDev(SPI_PORT, SPI_DEVICE))
+    pixels = Adafruit_WS2801.WS2801Pixels(PIXEL_COUNT, clk=SPI_CLK, do=SPI_DO)
     return pixels
 
 def turn_off(pixels):
