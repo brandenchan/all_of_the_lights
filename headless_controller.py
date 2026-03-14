@@ -18,7 +18,7 @@ class HeadlessController:
     def __init__(self, use_lights=True, n_pixels=50, show_animation=False):
         self.use_lights = use_lights
         self.show_animation = show_animation
-        
+
         if not use_lights:
             if show_animation:
                 self.output = "animation"
@@ -39,9 +39,9 @@ class HeadlessController:
                 self.output = "lights"
             except ImportError:
                 # Fallback to headless mode if pixels module not available
-                self.output = "headless" 
+                self.output = "headless"
                 self.n_pix = n_pixels
-                
+
         # Initialize state
         self.saturation = 0.0
         self.freq = 1
@@ -61,7 +61,7 @@ class HeadlessController:
         self.alt = True
         self._updating = False  # Flag to pause rendering during atomic updates
         self._static_mode = False  # Flag for static patterns that don't need continuous updates
-        self._last_render = None   # Store last rendered frame for static mode
+        self._static_rendered = False  # True when static frame has been written to SPI
 
         # Sunrise state
         self._sunrise_active = False
@@ -73,53 +73,61 @@ class HeadlessController:
         self._sunrise_end_hue = 40    # warm white
         self._sunrise_start_saturation = 0.6
         self._sunrise_end_saturation = 0.05
-        
+
         # Threading controls
         self._running = False
         self._thread = None
+        self._fade_thread = None
         self._lock = threading.RLock()
-        
+        self._wake_event = threading.Event()  # Used to wake the loop in static mode
+
     def start(self):
         """Start the light processing loop in a background thread"""
         with self._lock:
             if self._running:
                 return False
             self._running = True
-            
+
         self._thread = threading.Thread(target=self._run_loop, daemon=True)
         self._thread.start()
         return True
-        
+
     def stop(self):
         """Stop the light processing loop"""
         with self._lock:
             self._running = False
-            
+        self._wake_event.set()  # Wake the loop so it can exit
+
         if self._thread and self._thread.is_alive():
             self._thread.join(timeout=2.0)
-            
+
         # Turn off lights when stopping
         if self.output == "lights":
             self.turn_off(self.pixels)
-            
+
+    def _request_render(self):
+        """Mark that a new frame needs to be rendered and wake the loop"""
+        self._static_rendered = False
+        self._wake_event.set()
+
     def _run_loop(self):
         """Main light processing loop"""
         start_time = time.time()
         rgb_values = np.zeros((self.n_pix, 3))
         cache = {}
-        
+
         try:
             while self._running:
                 # Timing
                 loop_start = time.time()
-                elapsed = (loop_start - start_time) * 1000 
+                elapsed = (loop_start - start_time) * 1000
                 phase, n_cycles = calculate_phase(elapsed, self.cycle_time)
 
                 # Thread-safe access to parameters
                 with self._lock:
                     # Skip rendering during atomic updates
                     if self._updating:
-                        time.sleep(0.001)  # Short sleep during update
+                        time.sleep(0.001)
                         continue
 
                     # Sunrise interpolation
@@ -127,7 +135,6 @@ class HeadlessController:
                         elapsed_sunrise = loop_start - self._sunrise_start_time
                         progress = min(1.0, elapsed_sunrise / self._sunrise_duration)
 
-                        # Linear interpolation of brightness, hue, saturation
                         self.brightness = self._sunrise_start_brightness + (
                             self._sunrise_end_brightness - self._sunrise_start_brightness) * progress
                         hue_deg = self._sunrise_start_hue + (
@@ -136,32 +143,30 @@ class HeadlessController:
                         self.saturation = self._sunrise_start_saturation + (
                             self._sunrise_end_saturation - self._sunrise_start_saturation) * progress
 
-                        # Clear static cache so changes render
                         if self._static_mode:
-                            self._last_render = None
+                            self._static_rendered = False
 
                         if progress >= 1.0:
                             self._sunrise_active = False
 
-                    # Static mode optimization - skip SPI writes entirely when nothing changed
-                    if self._static_mode and self._last_render is not None:
-                        # If muting, we need to animate — otherwise just sleep
-                        curr_mute = self.mute
-                        curr_mute_fn = self.mute_fn
-                        curr_mute_start = self.mute_start
+                    # Static mode: if already rendered and nothing changed, just sleep
+                    if self._static_mode and self._static_rendered:
+                        # Check if muting (need to animate the mute effect)
+                        if self.mute and self.mute_start:
+                            pass  # Fall through to render the mute animation
+                        else:
+                            # Nothing to do — sleep until woken by a parameter change
+                            self._wake_event.clear()
+                            # Release lock before sleeping
+                            lock_ref = self._lock
+                            lock_ref.release()
+                            try:
+                                # Wake every 0.5s to check sunrise progress, or immediately on param change
+                                self._wake_event.wait(timeout=0.5 if self._sunrise_active else 5.0)
+                            finally:
+                                lock_ref.acquire()
+                            continue
 
-                        if curr_mute and curr_mute_start:
-                            elapsed_mute = (loop_start - curr_mute_start) * 1000
-                            kwargs = {"shape": self.shape}
-                            rgb_values_curr = (self._last_render * curr_mute_fn(elapsed_mute, kwargs)).astype(int)
-                            if self.output == "lights":
-                                self.set_all_values(self.pixels, rgb_values_curr)
-                                self.pixels.show()
-                        # else: frame unchanged, do NOT write to SPI
-
-                        time.sleep(0.1)
-                        continue
-                        
                     curr_speed = self.speed_factor
                     curr_function = self.function
                     curr_brightness = self.brightness
@@ -173,6 +178,7 @@ class HeadlessController:
                     curr_mute = self.mute
                     curr_mute_fn = self.mute_fn
                     curr_mute_start = self.mute_start
+                    is_static = self._static_mode
 
                 # Speeding up or slowing down phase
                 if curr_function == pixel_train:
@@ -188,7 +194,7 @@ class HeadlessController:
                           "alt": curr_alt,
                           "loop_start": loop_start}
 
-                # Generate new colors (persisting)
+                # Generate new colors
                 rgb_values, cache = curr_function(phase, cache, kwargs)
 
                 # Master dimming
@@ -199,24 +205,21 @@ class HeadlessController:
                     elapsed_mute = (loop_start - curr_mute_start) * 1000
                     rgb_values_curr = (rgb_values_curr * curr_mute_fn(elapsed_mute, kwargs)).astype(int)
 
-                # Cache result for static patterns (before mute is applied)
-                with self._lock:
-                    if self._static_mode and curr_function == solid and not curr_mute:
-                        self._last_render = (rgb_values * curr_brightness).astype(int)
-
                 # Set and show pixel values
                 if self.output == "lights":
                     self.set_all_values(self.pixels, rgb_values_curr)
                     self.pixels.show()
                 elif self.output == "animation":
                     self.animation.update(rgb_values_curr)
-                elif self.output == "headless":
-                    # In headless mode, just store the values (no visual output)
-                    pass
 
-                # Small sleep to prevent excessive CPU usage
-                time.sleep(0.016)  # ~60 FPS
-                
+                # Mark static frame as rendered so we stop writing to SPI
+                if is_static and not curr_mute:
+                    with self._lock:
+                        self._static_rendered = True
+
+                # Sleep: animated patterns run at ~60fps
+                time.sleep(0.016)
+
         except Exception as e:
             print(f"Error in light loop: {e}")
         finally:
@@ -238,46 +241,65 @@ class HeadlessController:
         if pattern_name.lower() in pattern_map:
             with self._lock:
                 self.function = pattern_map[pattern_name.lower()]
-                # Enable static mode only for solid pattern
                 if pattern_name.lower() == 'solid':
                     self._static_mode = True
-                    self._last_render = None  # Clear cache to force re-render
                 else:
                     self._static_mode = False
-                    self._last_render = None
+                self._request_render()
             return True
         return False
     
-    def set_brightness(self, brightness):
-        """Set brightness (0.0 to 1.0)"""
+    def set_brightness(self, brightness, transition=0.0):
+        """Set brightness (0.0 to 1.0) with optional smooth transition"""
         brightness = max(0.0, min(1.0, float(brightness)))
-        with self._lock:
-            self.brightness = brightness
-            # Clear cache to force re-render in static mode
-            if self._static_mode:
-                self._last_render = None
+        if transition > 0 and self._running:
+            # Smooth fade in a background thread
+            threading.Thread(
+                target=self._fade_brightness,
+                args=(brightness, transition),
+                daemon=True
+            ).start()
+        else:
+            with self._lock:
+                self.brightness = brightness
+                self._request_render()
         return brightness
+
+    def _fade_brightness(self, target, duration):
+        """Smoothly fade brightness over duration seconds"""
+        steps = max(1, int(duration * 30))  # 30 steps per second
+        with self._lock:
+            start_val = self.brightness
+        for i in range(1, steps + 1):
+            if not self._running:
+                break
+            # Ease-out curve for natural feel
+            progress = i / steps
+            eased = 1.0 - (1.0 - progress) ** 2
+            val = start_val + (target - start_val) * eased
+            with self._lock:
+                self.brightness = val
+                self._request_render()
+            time.sleep(duration / steps)
+        with self._lock:
+            self.brightness = target
+            self._request_render()
     
     def set_saturation(self, saturation):
         """Set saturation (0.0 to 1.0)"""
         saturation = max(0.0, min(1.0, float(saturation)))
         with self._lock:
             self.saturation = saturation
-            # Clear cache to force re-render in static mode
-            if self._static_mode:
-                self._last_render = None
+            self._request_render()
         return saturation
-    
+
     def set_hue(self, hue):
         """Set color hue (0-360 degrees, mapped to 0-255 color wheel)"""
-        # Convert 0-360 degree hue to 0-255 color wheel value
         hue = max(0, min(360, float(hue)))
         wheel_value = int(hue * 255 / 360)
         with self._lock:
             self.hue = wheel_value
-            # Clear cache to force re-render in static mode
-            if self._static_mode:
-                self._last_render = None
+            self._request_render()
         return hue
     
     def set_speed(self, speed_factor):
@@ -326,6 +348,7 @@ class HeadlessController:
                     self.mute_start = time.time()
                 elif not self.mute:
                     self.mute_start = None
+                self._request_render()
             return True
         return False
     
@@ -348,13 +371,10 @@ class HeadlessController:
                     }
                     if pattern.lower() in pattern_map:
                         self.function = pattern_map[pattern.lower()]
-                        # Enable static mode for solid pattern to eliminate continuous rendering
                         if pattern.lower() == 'solid':
                             self._static_mode = True
-                            self._last_render = None  # Clear cache to force re-render
                         else:
                             self._static_mode = False
-                            self._last_render = None
                 
                 if brightness is not None:
                     self.brightness = max(0.0, min(1.0, float(brightness)))
@@ -375,10 +395,11 @@ class HeadlessController:
                         
                 # Short delay to ensure any in-progress frame completes
                 time.sleep(0.02)
-                
+
             finally:
-                # Resume rendering
+                # Resume rendering and request a new frame
                 self._updating = False
+                self._request_render()
                 
         return True
     
@@ -401,11 +422,11 @@ class HeadlessController:
             self.saturation = start_saturation
             self.mute = False
             self.mute_start = None
-            self._last_render = None
 
             # Activate
             self._sunrise_start_time = time.time()
             self._sunrise_active = True
+            self._request_render()
         return True
 
     def stop_sunrise(self):

@@ -69,7 +69,7 @@ class APILightService:
             transition (float): Transition time in seconds (default 1.0)
 
         Returns:
-            dict: Result with success status and actual brightness value
+            dict: Result with success status and target brightness value
         """
         with self._lock:
             if not self._initialized:
@@ -79,12 +79,13 @@ class APILightService:
             if brightness > 1.0:
                 brightness = brightness / 100.0
 
-            actual_brightness = self.controller.set_brightness(brightness, transition=transition)
+            brightness = max(0.0, min(1.0, float(brightness)))
+            self.controller.set_brightness(brightness, transition=transition)
             return {
                 'success': True,
-                'message': f'Brightness set to {int(actual_brightness * 100)}%',
-                'brightness': actual_brightness,
-                'brightness_percent': int(actual_brightness * 100)
+                'message': f'Brightness set to {int(brightness * 100)}%',
+                'brightness': brightness,
+                'brightness_percent': int(brightness * 100)
             }
     
     def set_saturation(self, saturation):
